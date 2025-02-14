@@ -12,6 +12,7 @@
     <PackageReference Include="Discord.Net.Commands" Version="3.17.1" />
     <PackageReference Include="Discord.Net.Interactions" Version="3.17.1" />
     <PackageReference Include="Discord.Net.WebSocket" Version="3.17.1" />
+    <PackageReference Include="Lavalink4NET.Discord.NET" Version="4.0.25" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.2" />

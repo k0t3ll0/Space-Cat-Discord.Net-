@@ -11,6 +11,8 @@ using Space_Cat_v3.Commands.Handlers;
 using Space_Cat_v3.Commands.Modules;
 using Serilog;
 using Serilog.Events;
+using Lavalink4NET;
+using Lavalink4NET.Extensions;
 
 namespace Space_Cat_v3
 {
@@ -42,6 +44,8 @@ namespace Space_Cat_v3
                     // Add the DiscordSocketClient, along with specifying the GatewayIntents and user caching
                     .AddSingleton(x => new DiscordSocketClient(new DiscordSocketConfig
                     {
+                        UseInteractionSnowflakeDate = false,
+                        UseSystemClock = true,
                         GatewayIntents = GatewayIntents.All,
                         AlwaysDownloadUsers = true,
                     }))
@@ -49,6 +53,7 @@ namespace Space_Cat_v3
                     .AddSingleton<InteractionHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<PrefixHandler>()
+                    .AddSingleton(x=>x).AddLavalink()
                 )
                 .Build();
             

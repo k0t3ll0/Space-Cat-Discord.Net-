@@ -1,5 +1,5 @@
 prefix: "!"
-testGuild : guildId
+testGuild : guildID
 tokens: 
    discord : token
 

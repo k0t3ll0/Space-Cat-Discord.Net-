@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.Rest;
 using Discord.WebSocket;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
@@ -13,10 +14,10 @@ namespace Space_Cat_v3.Commands.Handlers
         private readonly InteractionService _commands;
         private readonly IServiceProvider? _services;
 
-        public InteractionHandler(IServiceProvider services)
+        public InteractionHandler(DiscordSocketClient client,IServiceProvider services, InteractionService command)
         {
-            _client = services.GetRequiredService<DiscordSocketClient>();
-            _commands = services.GetRequiredService<InteractionService>();
+            _client = client;
+            _commands = command;
             _services = services;
         }
 
@@ -33,6 +34,7 @@ namespace Space_Cat_v3.Commands.Handlers
             _commands.SlashCommandExecuted += SlashCommandExecuted;
             _commands.ContextCommandExecuted += ContextCommandExecuted;
             _commands.ComponentCommandExecuted += ComponentCommandExecuted;
+            await Task.CompletedTask;
         }
 
         private Task ComponentCommandExecuted(ComponentCommandInfo arg1, IInteractionContext arg2, IResult arg3)
@@ -74,6 +76,7 @@ namespace Space_Cat_v3.Commands.Handlers
         }
 
 
+
         private async Task HandleInteraction(SocketInteraction arg)
         {
             try
@@ -86,16 +89,11 @@ namespace Space_Cat_v3.Commands.Handlers
             {
                 Console.WriteLine(ex);
 
-                // If a Slash Command execution fails it is most likely that the original interaction acknowledgement will persist.
-                // It is a good idea to delete the original response,
-                // or at least let the user know that something went wrong during the command execution.
+                // If a Slash Command execution fails it is most likely that the original interaction acknowledgement will persist. It is a good idea to delete the original
+                // response, or at least let the user know that something went wrong during the command execution.
                 if (arg.Type == InteractionType.ApplicationCommand)
-                {
-                    var originalResponse = await arg.GetOriginalResponseAsync();
-                    await originalResponse.DeleteAsync();
-                }
+                    await arg.GetOriginalResponseAsync().ContinueWith(async (msg) => await msg.Result.DeleteAsync());
             }
-
         }
     }
 }
