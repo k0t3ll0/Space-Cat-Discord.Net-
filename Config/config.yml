@@ -1,6 +1,6 @@
 prefix: "!,&&"
-testGuild : 1338112270252900363
+testGuild : GuildId
 tokens: 
-   discord : MTMzODExMDc1OTE0MTY0MjI3MA.GcMnjI._YO_LuBsl_IqKwWcQqtA0itAQi4NuOMpbZQ_U4
+   discord : bot_key
 
 
