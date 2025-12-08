@@ -13,13 +13,6 @@ namespace Space_Cat_v3.Commands.Modules
             await Context.Message.ReplyAsync("kuku");
         }
 
-        [Command("zalupa")]
-        //Создание асинхронной задачи, в параметры идёт контекст
-        public async Task SendZalupa()
-        {
-            await Context.Message.ReplyAsync("suck dick ");
-        }
-
         [Command("random")]
         public async Task Random( int min, int max)
         {
