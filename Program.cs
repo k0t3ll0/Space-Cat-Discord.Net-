@@ -11,9 +11,10 @@ namespace Space_Cat_v3
 {
     internal class Program
     {
-
+        
         static async Task Main(string[] args)
         {
+            
             //Создаём конфиг через билдер
             var config = new ConfigurationBuilder()
                 //установить путь
@@ -66,9 +67,12 @@ namespace Space_Cat_v3
 
             await pCommands.InitializeAsync();
 
+            List<ulong> ids = config["Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
+
             _client.Ready += async() => 
-            {   
-                await sCommands.RegisterCommandsToGuildAsync(ulong.Parse(config["testGuild"])).ConfigureAwait(false);
+            {
+                for (int i = 0; i < ids.Count; i++)
+                    await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);
                 await Task.CompletedTask;
             };
 

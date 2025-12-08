@@ -14,13 +14,14 @@ namespace Space_Cat_v3.Commands.Modules
         }
 
         [Command("random")]
+        [Summary("% of gay")]
         public async Task Random( int min, int max)
         {
             var randomValue = new System.Random().Next(min, max + 1);
             await Context.Channel.SendMessageAsync(Context.User.GlobalName + " " + randomValue);
         }
 
-        [Command("embed")]
+        /*[Command("embed")]
         public async Task Embed()
         {
             //Эмбед - сообщение в виде плашки
@@ -58,6 +59,6 @@ namespace Space_Cat_v3.Commands.Modules
             IUserMessage m = await ReplyAsync($"I have deleted {messages.Count()} messages for ya. :)");
             await Task.Delay(delay);
             await m.DeleteAsync();
-        }
+        }*/
     }
 }

@@ -224,6 +224,7 @@ public class PrefixHandler : IDisposable
         {
             _logger?.LogWarning("Ошибка команды: {Error} - {Reason}",
                 result.Error, result.ErrorReason);
+            
         }
     }
 
