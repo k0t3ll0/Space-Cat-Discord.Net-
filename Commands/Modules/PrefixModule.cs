@@ -1,11 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Channels;
-using System.Threading.Tasks;
+
 
 namespace Space_Cat_v3.Commands.Modules
 {
@@ -49,7 +44,7 @@ namespace Space_Cat_v3.Commands.Modules
                 var memberRole = roles.First(x => x.Name == "member");
                 IGuildUser member = (IGuildUser)Context.User;
                 var task = member?.AddRoleAsync(memberRole);
-                await task;
+                await Task.CompletedTask;
             }
 
         }

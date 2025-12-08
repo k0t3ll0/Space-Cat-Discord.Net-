@@ -1,18 +1,14 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Discord.Interactions;
 using Space_Cat_v3.Commands.Handlers;
 using Space_Cat_v3.Commands.Modules;
-using Serilog;
-using Serilog.Events;
-using Lavalink4NET;
-using Lavalink4NET.Extensions;
+using ReactionRoleModule;
+
 
 namespace Space_Cat_v3
 {
@@ -30,11 +26,6 @@ namespace Space_Cat_v3
                 //создать
                 .Build();
 
-            Log.Logger = new LoggerConfiguration()
-                   .MinimumLevel.Debug()
-                   .Enrich.FromLogContext()
-                   .WriteTo.Console()
-                   .CreateLogger();
 
             //Создаём билдер для сервисов
             using IHost host = Host.CreateDefaultBuilder()
@@ -45,7 +36,6 @@ namespace Space_Cat_v3
                     .AddSingleton(x => new DiscordSocketClient(new DiscordSocketConfig
                     {
                         UseInteractionSnowflakeDate = false,
-                        UseSystemClock = true,
                         GatewayIntents = GatewayIntents.All,
                         AlwaysDownloadUsers = true,
                     }))
@@ -53,11 +43,13 @@ namespace Space_Cat_v3
                     .AddSingleton<InteractionHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<PrefixHandler>()
-                    .AddSingleton(x=>x).AddLavalink()
+                    .AddSingleton(x => new CommandService())
+                    .AddSingleton(x=>new CommandService())
+                    .AddSingleton<ReactionRoleService>()
+                    
                 )
                 .Build();
             
-
             await RunAsync(host);
         }
 
@@ -74,42 +66,23 @@ namespace Space_Cat_v3
             await provider.GetRequiredService<InteractionHandler>().InitializeAsync();
 
             var pCommands = provider.GetRequiredService<PrefixHandler>();
-            pCommands.AddModule<PrefixModule>();
 
+            await pCommands.AddModulesAsync();
             await pCommands.InitializeAsync();
 
-            // Subscribe to client log events
-            _client.Log += LogAsync;
-            sCommands.Log += LogAsync;
             
             
-
-            _client.Ready += () => {  
-                
-                sCommands.RegisterCommandsToGuildAsync(ulong.Parse(config["testGuild"]));
-                return Task.CompletedTask;
+            
+            _client.Ready += async() => 
+            {   
+                await sCommands.RegisterCommandsToGuildAsync(ulong.Parse(config["testGuild"])).ConfigureAwait(false);
+                await Task.CompletedTask;
             };
 
             await _client.LoginAsync(TokenType.Bot, config["tokens:discord"]);
             await _client.StartAsync();
 
             await Task.Delay(-1);
-        }
-
-        private static async Task LogAsync(LogMessage message)
-        {
-            var severity = message.Severity switch
-            {
-                LogSeverity.Critical => LogEventLevel.Fatal,
-                LogSeverity.Error => LogEventLevel.Error,
-                LogSeverity.Warning => LogEventLevel.Warning,
-                LogSeverity.Info => LogEventLevel.Information,
-                LogSeverity.Verbose => LogEventLevel.Verbose,
-                LogSeverity.Debug => LogEventLevel.Debug,
-                _ => LogEventLevel.Debug
-            };
-            Log.Write(severity, message.Exception, "[{Source}] {Message}", message.Source, message.Message);
-            await Task.CompletedTask;
         }
     }
 }

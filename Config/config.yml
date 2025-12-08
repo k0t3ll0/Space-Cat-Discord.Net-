@@ -1,6 +1,6 @@
-prefix: "!"
-testGuild : guildID
+prefix: "!,&&"
+testGuild : 1338112270252900363
 tokens: 
-   discord : token
+   discord : MTMzODExMDc1OTE0MTY0MjI3MA.GcMnjI._YO_LuBsl_IqKwWcQqtA0itAQi4NuOMpbZQ_U4
 
 
