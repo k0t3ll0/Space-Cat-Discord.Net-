@@ -1,6 +1,0 @@
-prefix: "!"
-testGuild : guildId
-tokens: 
-   discord : token
-
-
