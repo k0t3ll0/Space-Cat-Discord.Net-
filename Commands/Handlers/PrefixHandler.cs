@@ -4,7 +4,8 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ReactionRoleModule;
+using Space_Cat_v3.Commands.Modules;
+using System.Reflection;
 
 namespace Space_Cat_v3.Commands.Handlers;
 public class PrefixHandler : IDisposable
@@ -12,7 +13,6 @@ public class PrefixHandler : IDisposable
     private readonly DiscordSocketClient _client;
     private readonly CommandService _commands;
     private readonly IServiceProvider _services;
-    private readonly ReactionRoleService _reactionsRoles;
     private readonly ILogger<PrefixHandler> _logger;
     private readonly List<char> _prefixes;
     private bool _disposed;
@@ -27,15 +27,19 @@ public class PrefixHandler : IDisposable
         _client = services.GetRequiredService<DiscordSocketClient>();
         _commands = services.GetRequiredService<CommandService>();
         _logger = logger;
+
+        // Важно: НЕ регистрируем ReactionRoleService здесь, если он не был добавлен в DI
+        // _reactionRoleService = services.GetRequiredService<ReactionRoleService>();
+
         _commandSemaphore = new SemaphoreSlim(1, 1);
-        _reactionsRoles = services.GetRequiredService<ReactionRoleService>();
+
         // Получаем префиксы из конфигурации
         var prefixConfig = config["prefix"] ?? "!";
         _prefixes = ParsePrefixes(prefixConfig);
 
         if (_prefixes.Count == 0)
         {
-            _prefixes.Add('!'); // Значение по умолчанию
+            _prefixes.Add('!');
         }
 
         _logger?.LogInformation("Инициализирован PrefixHandler с префиксами: {Prefixes}",
@@ -46,14 +50,20 @@ public class PrefixHandler : IDisposable
     {
         try
         {
-            _client.MessageReceived += HandleMessageAsync;
+            _logger?.LogInformation("Начинаем инициализацию PrefixHandler...");
 
-            // Подписываемся на события CommandService для обработки результатов
+            // Регистрируем все модули из текущей сборки
+            await RegisterModulesFromAssemblyAsync(Assembly.GetEntryAssembly());
+
+            // ИЛИ регистрируем конкретные модули
+            //await RegisterModuleAsync<ReactionRoleModule>();
+
+            // Подписываемся на события
+            _client.MessageReceived += HandleMessageAsync;
             _commands.CommandExecuted += OnCommandExecutedAsync;
             _commands.Log += OnCommandServiceLogAsync;
 
             _logger?.LogInformation("PrefixHandler инициализирован успешно");
-            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -62,54 +72,51 @@ public class PrefixHandler : IDisposable
         }
     }
 
-    // Добавление модуля асинхронно
-    public async Task AddModuleAsync<T>() where T : IModuleBase
+    // Регистрация модуля по типу
+    public async Task RegisterModuleAsync<T>() where T : class, IModuleBase
     {
         try
         {
             await _commands.AddModuleAsync<T>(_services);
-            _logger?.LogInformation("Модуль {ModuleName} успешно добавлен", typeof(T).Name);
+            _logger?.LogInformation("✅ Модуль {ModuleName} зарегистрирован", typeof(T).Name);
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Ошибка при добавлении модуля {ModuleName}", typeof(T).Name);
-            throw;
+            _logger?.LogError(ex, "❌ Ошибка при регистрации модуля {ModuleName}", typeof(T).Name);
         }
     }
 
-    // Добавление модуля по типу
-    public async Task AddModuleAsync(Type moduleType)
+    // Регистрация всех модулей из сборки
+    private async Task RegisterModulesFromAssemblyAsync(Assembly assembly)
     {
-        if (!typeof(IModuleBase).IsAssignableFrom(moduleType))
-        {
-            throw new ArgumentException($"Тип {moduleType.Name} не реализует IModuleBase");
-        }
-
         try
         {
-            await _commands.AddModuleAsync(moduleType, _services);
-            _logger?.LogInformation("Модуль {ModuleName} успешно добавлен", moduleType.Name);
+            var modules = await _commands.AddModulesAsync(assembly, _services);
+            _logger?.LogInformation("✅ Зарегистрировано {Count} модулей из сборки {Assembly}",
+                modules.Count(), assembly.GetName().Name);
+
+            // Логируем все зарегистрированные команды
+            foreach (var module in _commands.Modules)
+            {
+                _logger?.LogInformation("Модуль: {ModuleName} ({Commands} команд)",
+                    module.Name, module.Commands.Count);
+
+                foreach (var command in module.Commands)
+                {
+                    _logger?.LogInformation("  Команда: {CommandName} - {Summary}",
+                        command.Name, command.Summary);
+                }
+            }
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Ошибка при добавлении модуля {ModuleName}", moduleType.Name);
-            throw;
-        }
-    }
-
-    // Добавление нескольких модулей
-    public async Task AddModulesAsync(params Type[] moduleTypes)
-    {
-        foreach (var moduleType in moduleTypes)
-        {
-            await AddModuleAsync(moduleType);
+            _logger?.LogError(ex, "Ошибка при регистрации модулей из сборки");
         }
     }
 
     // Основной обработчик сообщений
     private async Task HandleMessageAsync(SocketMessage messageParam)
     {
-        // Быстрая проверка, чтобы не обрабатывать ненужные сообщения
         if (!ShouldProcessMessage(messageParam))
             return;
 
@@ -118,10 +125,8 @@ public class PrefixHandler : IDisposable
 
         try
         {
-            // Используем семафор для предотвращения race conditions
             await _commandSemaphore.WaitAsync();
 
-            // Пытаемся выполнить команду для каждого префикса
             foreach (var prefix in _prefixes)
             {
                 int argPos = 0;
@@ -129,15 +134,10 @@ public class PrefixHandler : IDisposable
                 if (message.HasCharPrefix(prefix, ref argPos) ||
                     message.HasMentionPrefix(_client.CurrentUser, ref argPos))
                 {
+                    _logger?.LogDebug("Найдена команда: {Content}", message.Content);
                     await ExecuteCommandAsync(context, argPos);
-                    return; // Команда найдена и выполнена
+                    return;
                 }
-            }
-
-            // Проверяем строковые префиксы (для многосимвольных префиксов)
-            if (TryGetStringPrefix(message, out int argPosString))
-            {
-                await ExecuteCommandAsync(context, argPosString);
             }
         }
         catch (Exception ex)
@@ -146,22 +146,14 @@ public class PrefixHandler : IDisposable
 
             try
             {
-                // Отправляем сообщение об ошибке пользователю
-                if (message.Channel is ITextChannel textChannel)
-                {
-                    var embed = new EmbedBuilder()
-                        .WithColor(Color.Red)
-                        .WithDescription("❌ Произошла ошибка при выполнении команды")
-                        .WithFooter("Попробуйте позже или обратитесь к администратору")
-                        .Build();
+                var errorEmbed = new EmbedBuilder()
+                    .WithColor(Color.Red)
+                    .WithDescription("❌ Ошибка выполнения команды")
+                    .Build();
 
-                    await message.Channel.SendMessageAsync(embed: embed);
-                }
+                await message.Channel.SendMessageAsync(embed: errorEmbed);
             }
-            catch (Exception sendEx)
-            {
-                _logger?.LogWarning(sendEx, "Не удалось отправить сообщение об ошибке");
-            }
+            catch { }
         }
         finally
         {
@@ -173,68 +165,69 @@ public class PrefixHandler : IDisposable
     private async Task ExecuteCommandAsync(SocketCommandContext context, int argPos)
     {
         _logger?.LogDebug("Выполнение команды от {User}: {Message}",
-            context.User.Username,
-            context.Message.Content);
+            context.User.Username, context.Message.Content);
 
         var result = await _commands.ExecuteAsync(context, argPos, _services);
 
-        // Логируем результат выполнения
-        if (!result.IsSuccess)
+        if (!result.IsSuccess && result.Error != CommandError.UnknownCommand)
         {
             _logger?.LogWarning("Команда не выполнена: {Error} - {Reason}",
-                result.Error,
-                result.ErrorReason);
-        }
-        else
-        {
-            _logger?.LogDebug("Команда успешно выполнена: {Command}",
-                context.Message.Content);
+                result.Error, result.ErrorReason);
+
+            // Отправляем сообщение об ошибке
+            if (result.Error == CommandError.UnmetPrecondition)
+            {
+                await context.Channel.SendMessageAsync($"🚫 {result.ErrorReason}");
+            }
         }
     }
 
-    // Обработчик результатов выполнения команд
+    // Проверка сообщения
+    private bool ShouldProcessMessage(SocketMessage message)
+    {
+        if (message is not SocketUserMessage userMessage)
+            return false;
+
+        if (userMessage.Author.IsBot || userMessage.Author.IsWebhook)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(userMessage.Content))
+            return false;
+
+        return true;
+    }
+
+    // Парсинг префиксов
+    private List<char> ParsePrefixes(string prefixConfig)
+    {
+        var prefixes = new List<char>();
+
+        if (!string.IsNullOrWhiteSpace(prefixConfig))
+        {
+            foreach (var prefix in prefixConfig.Split(','))
+            {
+                var trimmed = prefix.Trim();
+                if (trimmed.Length > 0)
+                {
+                    prefixes.Add(trimmed[0]);
+                }
+            }
+        }
+
+        return prefixes;
+    }
+
+    // Обработчик результатов команд
     private async Task OnCommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)
     {
         if (!result.IsSuccess)
         {
-            string errorMessage = result.Error switch
-            {
-                CommandError.UnknownCommand => "Неизвестная команда",
-                CommandError.ParseFailed => "Не удалось разобрать аргументы команды",
-                CommandError.BadArgCount => "Неверное количество аргументов",
-                CommandError.ObjectNotFound => "Объект не найден",
-                CommandError.MultipleMatches => "Найдено несколько совпадений",
-                CommandError.UnmetPrecondition => GetFriendlyPreconditionError(result.ErrorReason),
-                CommandError.Exception => "Внутренняя ошибка при выполнении команды",
-                CommandError.Unsuccessful => "Команда не выполнена",
-                _ => "Неизвестная ошибка"
-            };
-
-            _logger?.LogWarning("Ошибка команды {Command}: {Error}",
-                command.IsSpecified ? command.Value.Name : "unknown",
-                errorMessage);
-
-            // Отправляем сообщение об ошибке пользователю
-            try
-            {
-                if (context.Channel is ITextChannel textChannel)
-                {
-                    var embed = new EmbedBuilder()
-                        .WithColor(Color.Orange)
-                        .WithDescription($"⚠️ {errorMessage}")
-                        .Build();
-
-                    await context.Channel.SendMessageAsync(embed: embed);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogWarning(ex, "Не удалось отправить сообщение об ошибке");
-            }
+            _logger?.LogWarning("Ошибка команды: {Error} - {Reason}",
+                result.Error, result.ErrorReason);
         }
     }
 
-    // Обработчик логов CommandService
+    // Логирование CommandService
     private Task OnCommandServiceLogAsync(LogMessage logMessage)
     {
         var logLevel = logMessage.Severity switch
@@ -254,165 +247,17 @@ public class PrefixHandler : IDisposable
         return Task.CompletedTask;
     }
 
-    // Проверка, нужно ли обрабатывать сообщение
-    private bool ShouldProcessMessage(SocketMessage message)
-    {
-        // Проверяем тип сообщения
-        if (message is not SocketUserMessage userMessage)
-            return false;
-
-        // Игнорируем сообщения от ботов
-        if (userMessage.Author.IsBot)
-            return false;
-
-        // Игнорируем системные сообщения
-        if (userMessage.Author.IsWebhook)
-            return false;
-
-        // Игнорируем пустые сообщения
-        if (string.IsNullOrWhiteSpace(userMessage.Content))
-            return false;
-        
-        return true;
-    }
-
-    // Парсинг префиксов из конфигурации
-    private List<char> ParsePrefixes(string prefixConfig)
-    {
-        var prefixes = new List<char>();
-
-        if (!string.IsNullOrWhiteSpace(prefixConfig))
-        {
-            // Поддерживаем несколько префиксов через запятую
-            var prefixStrings = prefixConfig.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrEmpty(s));
-
-            foreach (var prefix in prefixStrings)
-            {
-                // Берем только первый символ, так как HasCharPrefix работает с одиночными символами
-                if (prefix.Length > 0)
-                {
-                    prefixes.Add(prefix[0]);
-                }
-            }
-        }
-
-        return prefixes;
-    }
-
-    // Проверка строковых префиксов (для многосимвольных)
-    private bool TryGetStringPrefix(SocketUserMessage message, out int argPos)
-    {
-        argPos = 0;
-
-        // Здесь можно реализовать проверку многосимвольных префиксов
-        // Например, если у вас есть префикс "!!"
-        var content = message.Content;
-
-        // Пример: проверка префикса "!!"
-        if (content.StartsWith("&&"))
-        {
-            argPos = 2;
-            return true;
-        }
-
-        return false;
-    }
-
-    // Получение текущих префиксов
-    public IReadOnlyList<char> GetPrefixes() => _prefixes.AsReadOnly();
-
-    // Добавление временного префикса
-    public void AddTemporaryPrefix(char prefix)
-    {
-        if (!_prefixes.Contains(prefix))
-        {
-            _prefixes.Add(prefix);
-            _logger?.LogInformation("Добавлен временный префикс: '{Prefix}'", prefix);
-        }
-    }
-
-    // Удаление временного префикса
-    public bool RemoveTemporaryPrefix(char prefix)
-    {
-        // Не удаляем префиксы из конфигурации, только добавленные временно
-        // (в этой простой реализации удаляем любой префикс, кроме первого)
-        if (_prefixes.Count > 1 && _prefixes.Contains(prefix))
-        {
-            _prefixes.Remove(prefix);
-            _logger?.LogInformation("Удален временный префикс: '{Prefix}'", prefix);
-            return true;
-        }
-
-        return false;
-    }
-
-    // Очистка ресурсов
     public void Dispose()
-    {
-        Dispose(true);
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
     {
         if (!_disposed)
         {
-            if (disposing)
-            {
-                // Отписываемся от событий
-                if (_client != null)
-                    _client.MessageReceived -= HandleMessageAsync;
+            _client.MessageReceived -= HandleMessageAsync;
+            _commands.CommandExecuted -= OnCommandExecutedAsync;
+            _commands.Log -= OnCommandServiceLogAsync;
 
-                if (_commands != null)
-                {
-                    _commands.CommandExecuted -= OnCommandExecutedAsync;
-                    _commands.Log -= OnCommandServiceLogAsync;
-                }
-
-                _commandSemaphore?.Dispose();
-                _logger?.LogInformation("PrefixHandler очищен");
-            }
+            _commandSemaphore?.Dispose();
 
             _disposed = true;
         }
-    }
-
-    private string GetFriendlyPreconditionError(string errorReason)
-    {
-        if (errorReason.Contains("Administrator") || errorReason.Contains("Admin"))
-            return "Эта команда доступна только администраторам";
-
-        if (errorReason.Contains("Moderator") || errorReason.Contains("Mod"))
-            return "Эта команда доступна только модераторам";
-
-        if (errorReason.Contains("Permission"))
-            return "У вас недостаточно прав для выполнения этой команды";
-
-        return errorReason ?? "Не выполнены предварительные условия";
-    }
-
-    public async Task ShowHelpAsync(ICommandContext context)
-    {
-        var embed = new EmbedBuilder()
-            .WithColor(Color.Blue)
-            .WithTitle("📚 Доступные команды")
-            .WithDescription($"Префиксы: {string.Join(", ", _prefixes.Select(p => $"`{p}`"))}")
-            .AddField("ReactionRole Команды",
-                "`!reactionrole add <id_сообщения> <эмодзи> <id_роли>` - Добавить привязку\n" +
-                "`!reactionrole remove <id_сообщения> <эмодзи>` - Удалить привязку\n" +
-                "`!reactionrole list` - Показать все привязки\n" +
-                "`!reactionrole createpanel` - Создать панель выбора ролей\n" +
-                "`!reactionrole clearall` - Удалить все привязки")
-            .WithFooter("Используйте !help для подробной информации")
-            .Build();
-
-        await context.Channel.SendMessageAsync(embed: embed);
-    }
-
-    ~PrefixHandler()
-    {
-        Dispose(false);
     }
 }

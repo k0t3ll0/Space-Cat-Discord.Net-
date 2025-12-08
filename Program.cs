@@ -6,9 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Discord.Interactions;
 using Space_Cat_v3.Commands.Handlers;
-using Space_Cat_v3.Commands.Modules;
-using ReactionRoleModule;
-
 
 namespace Space_Cat_v3
 {
@@ -67,12 +64,8 @@ namespace Space_Cat_v3
 
             var pCommands = provider.GetRequiredService<PrefixHandler>();
 
-            await pCommands.AddModulesAsync();
             await pCommands.InitializeAsync();
 
-            
-            
-            
             _client.Ready += async() => 
             {   
                 await sCommands.RegisterCommandsToGuildAsync(ulong.Parse(config["testGuild"])).ConfigureAwait(false);
