@@ -4,7 +4,6 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using ReactionRoleModule;
 
 namespace Space_Cat_v3.Commands.Handlers;
 public class PrefixHandler : IDisposable
@@ -47,7 +46,6 @@ public class PrefixHandler : IDisposable
         try
         {
             _client.MessageReceived += HandleMessageAsync;
-
             // Подписываемся на события CommandService для обработки результатов
             _commands.CommandExecuted += OnCommandExecutedAsync;
             _commands.Log += OnCommandServiceLogAsync;
@@ -272,7 +270,7 @@ public class PrefixHandler : IDisposable
         // Игнорируем пустые сообщения
         if (string.IsNullOrWhiteSpace(userMessage.Content))
             return false;
-        
+
         return true;
     }
 
@@ -391,24 +389,6 @@ public class PrefixHandler : IDisposable
             return "У вас недостаточно прав для выполнения этой команды";
 
         return errorReason ?? "Не выполнены предварительные условия";
-    }
-
-    public async Task ShowHelpAsync(ICommandContext context)
-    {
-        var embed = new EmbedBuilder()
-            .WithColor(Color.Blue)
-            .WithTitle("📚 Доступные команды")
-            .WithDescription($"Префиксы: {string.Join(", ", _prefixes.Select(p => $"`{p}`"))}")
-            .AddField("ReactionRole Команды",
-                "`!reactionrole add <id_сообщения> <эмодзи> <id_роли>` - Добавить привязку\n" +
-                "`!reactionrole remove <id_сообщения> <эмодзи>` - Удалить привязку\n" +
-                "`!reactionrole list` - Показать все привязки\n" +
-                "`!reactionrole createpanel` - Создать панель выбора ролей\n" +
-                "`!reactionrole clearall` - Удалить все привязки")
-            .WithFooter("Используйте !help для подробной информации")
-            .Build();
-
-        await context.Channel.SendMessageAsync(embed: embed);
     }
 
     ~PrefixHandler()

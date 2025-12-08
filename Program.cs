@@ -7,7 +7,6 @@ using Microsoft.Extensions.Hosting;
 using Discord.Interactions;
 using Space_Cat_v3.Commands.Handlers;
 using Space_Cat_v3.Commands.Modules;
-using ReactionRoleModule;
 
 
 namespace Space_Cat_v3
@@ -43,10 +42,9 @@ namespace Space_Cat_v3
                     .AddSingleton<InteractionHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<PrefixHandler>()
-                    .AddSingleton(x => new CommandService())
-                    .AddSingleton(x=>new CommandService())
-                    .AddSingleton<ReactionRoleService>()
-                    
+                    .AddSingleton(x=> new CommandService())
+                    .AddSingleton<ReactionRoleService>()   
+                   
                 )
                 .Build();
             
@@ -62,17 +60,18 @@ namespace Space_Cat_v3
             var config = provider.GetRequiredService<IConfigurationRoot>();
 
             var sCommands = provider.GetRequiredService<InteractionService>();
-
             await provider.GetRequiredService<InteractionHandler>().InitializeAsync();
 
             var pCommands = provider.GetRequiredService<PrefixHandler>();
-
-            await pCommands.AddModulesAsync();
+            
             await pCommands.InitializeAsync();
+            
+            var rCommands = provider.GetRequiredService<ReactionRoleService>();
+            await rCommands.InitializeAsync();
 
             
-            
-            
+           
+
             _client.Ready += async() => 
             {   
                 await sCommands.RegisterCommandsToGuildAsync(ulong.Parse(config["testGuild"])).ConfigureAwait(false);
