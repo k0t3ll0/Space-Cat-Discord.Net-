@@ -4,7 +4,6 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Space_Cat_v3.Commands.Modules;
 using System.Reflection;
 
 namespace Space_Cat_v3.Commands.Handlers;

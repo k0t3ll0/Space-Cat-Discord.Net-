@@ -1,6 +1,4 @@
-﻿using Discord;
-using Discord.Interactions;
-
+﻿using Discord.Interactions;
 
 namespace Space_Cat_v3.Commands.Modules
 {

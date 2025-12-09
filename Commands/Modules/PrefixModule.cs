@@ -1,8 +1,5 @@
 ﻿using Discord;
 using Discord.Commands;
-using Microsoft.VisualBasic;
-using System.Linq;
-
 
 namespace Space_Cat_v3.Commands.Modules
 {

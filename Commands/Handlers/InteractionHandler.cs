@@ -1,7 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using Microsoft.VisualBasic;
 using System.Reflection;
 
 namespace Space_Cat_v3.Commands.Handlers;
