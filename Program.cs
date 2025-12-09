@@ -86,10 +86,12 @@ namespace Space_Cat_v3
 
             _client.Ready += async() => 
             {
-                for (int i = 0; i < ids.Count; i++)
-                    await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);
-                await Task.CompletedTask;
+                /*for (int i = 0; i < ids.Count; i++)
+                    await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);*/
+                await sCommands.RegisterCommandsGloballyAsync();
+
                 await provider.UseLavaNodeAsync();
+                await Task.CompletedTask;
             };
 
             await _client.LoginAsync(TokenType.Bot, config["Discord:tokens:discord"]);

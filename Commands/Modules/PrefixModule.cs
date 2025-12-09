@@ -1,5 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
+using Microsoft.VisualBasic;
+using System.Linq;
 
 
 namespace Space_Cat_v3.Commands.Modules
@@ -38,13 +40,13 @@ namespace Space_Cat_v3.Commands.Modules
         [Command("role")]
         public async Task GetRole()
         {
-            
+
             if (Context.Channel.Name == "verify")
             {
                 var roles = Context.Guild.Roles;
                 var memberRole = roles.First(x => x.Name == "member");
                 IGuildUser member = (IGuildUser)Context.User;
-                await member?.AddRoleAsync(memberRole)!; 
+                await member?.AddRoleAsync(memberRole)!;
             }
 
         }
@@ -63,29 +65,15 @@ namespace Space_Cat_v3.Commands.Modules
         [Command("help")]
         public async Task CheckAllCommands()
         {
-            List<string> info = new List<string>()
-            {
-                "!hello - ответ от бота",
-                "!embed - тестовый эмбед",
-                "!clear - требует управление сообщениями(очищает все сообщения в чате в диапазоне 7 дней)",
-                "!random - % of gay",
-                "!rr help - помощь по настройке создания ролей",
-                "!rr createpanel - создать сообщение для постановки там смайликов",
-                "!rr add \"id-сообщения\" \"смайлик\" \"роль\" - добавить смайлик для получения роли",
-                "!rr remove \"id-сообщения\" \"смайлик\" - убрать привязку роли к смайлику",
-                "!rr info - показать общее количество привязок",
-                "!rr list - показать все привязки",
-                "/test - эмбед(плашка)",
-                "/parameter - эмбед с текстом"
-            };
-            var message = new EmbedBuilder()
+            List<string> info = File.ReadAllLines("commands.txt").ToList();
+            var embed = new EmbedBuilder()
             {
                 Title = "Команды бота",
-                Description = string.Join("\r\n", info),
-                Color = Color.Red
+                Description = string.Join("\n", info),
+                Color = Color.Blue,
             };
-            await Context.Channel.SendMessageAsync(embed: message.Build());
+            await ReplyAsync(embed: embed.Build());
         }
-        
+
     }
 }

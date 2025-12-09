@@ -13,7 +13,7 @@ public sealed class AudioModule(
 {
     private static readonly IEnumerable<int> Range = Enumerable.Range(1900, 2000);
 
-    [Command("Join")]
+    [Command("join")]
     public async Task JoinAsync()
     {
         var voiceState = Context.User as IVoiceState;
@@ -36,7 +36,7 @@ public sealed class AudioModule(
         }
     }
 
-    [Command("Leave")]
+    [Command("leave")]
     public async Task LeaveAsync()
     {
         var voiceChannel = (Context.User as IVoiceState).VoiceChannel;
@@ -57,7 +57,7 @@ public sealed class AudioModule(
         }
     }
 
-    [Command("Play")]
+    [Command("play")]
     public async Task PlayAsync([Remainder] string searchQuery)
     {
         if (string.IsNullOrWhiteSpace(searchQuery))
@@ -107,7 +107,7 @@ public sealed class AudioModule(
         await ReplyAsync($"Added {track.Title} to queue.");
     }
 
-    [Command("Pause"), RequirePlayer]
+    [Command("pause"), RequirePlayer]
     public async Task PauseAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
@@ -128,7 +128,7 @@ public sealed class AudioModule(
         }
     }
 
-    [Command("Resume"), RequirePlayer]
+    [Command("resume"), RequirePlayer]
     public async Task ResumeAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
@@ -149,7 +149,7 @@ public sealed class AudioModule(
         }
     }
 
-    [Command("Stop"), RequirePlayer]
+    [Command("stop"), RequirePlayer]
     public async Task StopAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
@@ -170,7 +170,7 @@ public sealed class AudioModule(
         }
     }
 
-    [Command("Skip"), RequirePlayer]
+    [Command("skip"), RequirePlayer]
     public async Task SkipAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);

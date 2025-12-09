@@ -6,7 +6,7 @@ namespace Space_Cat_v3.Commands.Modules
 {
     public class InteractionModule: InteractionModuleBase<SocketInteractionContext>
     {
-        [SlashCommand("test", "Простая слэш команда")]
+        /*[SlashCommand("test", "Простая слэш команда")]
         public async Task TestSlashCommand()
         { 
             await DeferAsync();
@@ -36,6 +36,8 @@ namespace Space_Cat_v3.Commands.Modules
             await ModifyOriginalResponseAsync(msg => msg.Embed = message.Build());
         }
         [SlashCommand("ping", "Pong!")]
-        public async Task Ping() => await RespondAsync("pong");
+        public async Task Ping() => await RespondAsync("pong");*/
+
+
     }
 }

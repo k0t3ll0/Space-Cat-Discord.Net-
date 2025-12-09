@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
+using Microsoft.VisualBasic;
 using System.Reflection;
 
 namespace Space_Cat_v3.Commands.Handlers;
@@ -51,6 +52,7 @@ public class InteractionHandler
     // Обработчик компонентов (кнопок, выпадающих списков)
     private Task ComponentCommandExecutedAsync(ComponentCommandInfo commandInfo, IInteractionContext context, IResult result)
     {
+        
         if (!result.IsSuccess)
         {
             Console.ForegroundColor = ConsoleColor.Red;
@@ -124,7 +126,7 @@ public class InteractionHandler
             // Логируем тип взаимодействия
             LogInteractionType(interaction);
 
-            // Выполняем команду
+            // Выполняем команду           
             await _interactionService.ExecuteCommandAsync(context, _services);
         }
         catch (Exception ex)
@@ -165,7 +167,7 @@ public class InteractionHandler
             InteractionType.ModalSubmit => "Модальное окно",
             _ => "Неизвестный тип"
         };
-
+        
         Console.WriteLine($"📥 Взаимодействие: {interactionType} от {interaction.User.Username}");
     }
 
