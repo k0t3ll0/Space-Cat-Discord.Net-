@@ -19,15 +19,14 @@ public sealed class AudioModule(
         var voiceState = Context.User as IVoiceState;
         if (voiceState?.VoiceChannel == null)
         {
-            await ReplyAsync("You must be connected to a voice channel!");
+            await ReplyAsync("Вы должны быть подключены к каналу!");
             return;
         }
 
         try
-        {
+        {   
             await lavaNode.JoinAsync(voiceState.VoiceChannel);
             await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
-
             audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
         }
         catch (Exception exception)
@@ -35,21 +34,19 @@ public sealed class AudioModule(
             await ReplyAsync(exception.ToString());
         }
     }
-
     [Command("leave")]
     public async Task LeaveAsync()
     {
         var voiceChannel = (Context.User as IVoiceState).VoiceChannel;
         if (voiceChannel == null)
         {
-            await ReplyAsync("Not sure which voice channel to disconnect from.");
+            await ReplyAsync("❌ Вы должны быть в голосовом каналу!");
             return;
         }
-
         try
         {
             await lavaNode.LeaveAsync(voiceChannel);
-            await ReplyAsync($"I've left {voiceChannel.Name}!");
+            await ReplyAsync($"Я покинул {voiceChannel.Name}!");
         }
         catch (Exception exception)
         {
@@ -62,7 +59,7 @@ public sealed class AudioModule(
     {
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
-            await ReplyAsync("Please provide search terms.");
+            await ReplyAsync("Введите ссылку на музыку.");
             return;
         }
 
@@ -72,26 +69,26 @@ public sealed class AudioModule(
             var voiceState = Context.User as IVoiceState;
             if (voiceState?.VoiceChannel == null)
             {
-                await ReplyAsync("You must be connected to a voice channel!");
+                await ReplyAsync("Вы должны быть подключены к голосовому каналу!");
                 return;
             }
 
             try
-            {
+            {                
                 player = await lavaNode.JoinAsync(voiceState.VoiceChannel);
-                await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
+                await ReplyAsync($"Подключился {voiceState.VoiceChannel.Name}!");
                 audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
             }
             catch (Exception exception)
-            {
-                await ReplyAsync(exception.Message);
-            }
+            {             
+                await ReplyAsync(exception.Message);      
+            }   
         }
 
         var searchResponse = await lavaNode.LoadTrackAsync(searchQuery);
         if (searchResponse.Type is SearchType.Empty or SearchType.Error)
         {
-            await ReplyAsync($"I wasn't able to find anything for `{searchQuery}`.");
+            await ReplyAsync($"Не могу найти ничего по запросу: `{searchQuery}`.");
             return;
         }
 
@@ -99,12 +96,12 @@ public sealed class AudioModule(
         if (player.GetQueue().Count == 0)
         {
             await player.PlayAsync(lavaNode, track);
-            await ReplyAsync($"Now playing: {track.Title}");
+            //await ReplyAsync($"Now playing: {track.Title}");
             return;
         }
 
         player.GetQueue().Enqueue(track);
-        await ReplyAsync($"Added {track.Title} to queue.");
+        await ReplyAsync($"Добавил {track.Title} в очередь.");
     }
 
     [Command("pause"), RequirePlayer]
@@ -113,14 +110,14 @@ public sealed class AudioModule(
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
         if (player.IsPaused && player.Track != null)
         {
-            await ReplyAsync("I cannot pause when I'm not playing anything!");
+            await ReplyAsync("Нельзя поставить паузу когда ничего не играет!");
             return;
         }
 
         try
         {
             await player.PauseAsync(lavaNode);
-            await ReplyAsync($"Paused: {player.Track.Title}");
+            await ReplyAsync($"На паузе: {player.Track.Title}");
         }
         catch (Exception exception)
         {
@@ -134,14 +131,14 @@ public sealed class AudioModule(
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
         if (!player.IsPaused && player.Track != null)
         {
-            await ReplyAsync("I cannot resume when I'm not playing anything!");
+            await ReplyAsync("Нельзя возобновить когда ничего не играет!");
             return;
         }
 
         try
         {
             await player.ResumeAsync(lavaNode, player.Track);
-            await ReplyAsync($"Resumed: {player.Track.Title}");
+            await ReplyAsync($"Возобновил: {player.Track.Title}");
         }
         catch (Exception exception)
         {
@@ -155,14 +152,14 @@ public sealed class AudioModule(
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
         if (!player.State.IsConnected || player.Track == null)
         {
-            await ReplyAsync("Woah, can't stop won't stop.");
+            await ReplyAsync("Воу, не могу остановить то чего нет.");
             return;
         }
 
         try
         {
             await player.StopAsync(lavaNode, player.Track);
-            await ReplyAsync("No longer playing anything.");
+            await ReplyAsync("Больше нечего проигрывать.");
         }
         catch (Exception exception)
         {
@@ -176,7 +173,7 @@ public sealed class AudioModule(
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
         if (!player.State.IsConnected)
         {
-            await ReplyAsync("Woaaah there, I can't skip when nothing is playing.");
+            await ReplyAsync("Воу погоди, не могу пропустить когда ничего нету.");
             return;
         }
 
@@ -187,21 +184,21 @@ public sealed class AudioModule(
 
         if (!audioService.VoteQueue.Add(Context.User.Id))
         {
-            await ReplyAsync("You can't vote again.");
+            await ReplyAsync("Вы можете проголосовать снова.");
             return;
         }
 
         var percentage = audioService.VoteQueue.Count / voiceChannelUsers.Length * 100;
         if (percentage < 85)
         {
-            await ReplyAsync("You need more than 85% votes to skip this song.");
+            await ReplyAsync("Вам нужно больше 85% голосов для пропуска.");
             return;
         }
 
         try
         {
             var (skipped, currenTrack) = await player.SkipAsync(lavaNode);
-            await ReplyAsync($"Skipped: {skipped.Title}\nNow Playing: {currenTrack.Title}");
+            await ReplyAsync($"Пропущен: {skipped.Title}\nТекущий: {currenTrack.Title}");
         }
         catch (Exception exception)
         {

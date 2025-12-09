@@ -56,6 +56,13 @@ namespace Space_Cat_v3
                         x.Authorization = "youshallnotpass";
                         x.Version = 4;
                         x.SelfDeaf = true;
+                        x.EnableResume = true;
+                        x.SocketConfiguration = new()
+                        {
+                            BufferSize = 1024,
+                            ReconnectAttempts = -1,
+                            ReconnectDelay = 2000
+                        };
                     })
                     .AddSingleton<AudioService>()
                 )

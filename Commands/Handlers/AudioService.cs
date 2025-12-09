@@ -38,17 +38,17 @@ namespace Space_Cat_v3.Commands.Handlers
         private Task OnTrackStartAsync(TrackStartEventArg arg)
         {
             return SendAndLogMessageAsync(arg.GuildId,
-                $"Now playing: {arg.Track.Title}");
+                $"Сейчас играет: {arg.Track.Title}");
         }
 
         private Task OnTrackEndAsync(TrackEndEventArg arg)
         {
-            return SendAndLogMessageAsync(arg.GuildId, $"{arg.Track.Title} ended with reason: {arg.Reason}");
+            return SendAndLogMessageAsync(arg.GuildId, $"{arg.Track.Title} завершил работу с причиной: {arg.Reason}");
         }
 
         private Task OnPlayerUpdateAsync(PlayerUpdateEventArg arg)
         {
-            _logger.LogInformation("Guild latency: {Ping}", arg.Ping);
+            _logger.LogInformation("Пинг: {Ping}", arg.Ping);
             return Task.CompletedTask;
         }
 
