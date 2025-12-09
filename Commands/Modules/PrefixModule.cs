@@ -15,7 +15,7 @@ namespace Space_Cat_v3.Commands.Modules
 
         [Command("random")]
         [Summary("% of gay")]
-        public async Task Random( int min, int max)
+        public async Task Random(int min, int max)
         {
             var randomValue = new System.Random().Next(min, max + 1);
             await Context.Channel.SendMessageAsync(Context.User.GlobalName + " " + randomValue);
@@ -35,7 +35,7 @@ namespace Space_Cat_v3.Commands.Modules
 
             await Context.Channel.SendMessageAsync(embed: message.Build());
         }
-        /*[Command("role")]
+        [Command("role")]
         public async Task GetRole()
         {
             
@@ -44,11 +44,10 @@ namespace Space_Cat_v3.Commands.Modules
                 var roles = Context.Guild.Roles;
                 var memberRole = roles.First(x => x.Name == "member");
                 IGuildUser member = (IGuildUser)Context.User;
-                var task = member?.AddRoleAsync(memberRole);
-                await Task.CompletedTask;
+                await member?.AddRoleAsync(memberRole)!; 
             }
 
-        }*/
+        }
         [Command("clear")]
         [RequireUserPermission(GuildPermission.ManageMessages)]
         public async Task DeleteAllMessages()
@@ -60,5 +59,33 @@ namespace Space_Cat_v3.Commands.Modules
             await Task.Delay(delay);
             await m.DeleteAsync();
         }
+
+        [Command("help")]
+        public async Task CheckAllCommands()
+        {
+            List<string> info = new List<string>()
+            {
+                "!hello - ответ от бота",
+                "!embed - тестовый эмбед",
+                "!clear - требует управление сообщениями(очищает все сообщения в чате в диапазоне 7 дней)",
+                "!random - % of gay",
+                "!rr help - помощь по настройке создания ролей",
+                "!rr createpanel - создать сообщение для постановки там смайликов",
+                "!rr add \"id-сообщения\" \"смайлик\" \"роль\" - добавить смайлик для получения роли",
+                "!rr remove \"id-сообщения\" \"смайлик\" - убрать привязку роли к смайлику",
+                "!rr info - показать общее количество привязок",
+                "!rr list - показать все привязки",
+                "/test - эмбед(плашка)",
+                "/parameter - эмбед с текстом"
+            };
+            var message = new EmbedBuilder()
+            {
+                Title = "Команды бота",
+                Description = string.Join("\r\n", info),
+                Color = Color.Red
+            };
+            await Context.Channel.SendMessageAsync(embed: message.Build());
+        }
+        
     }
 }

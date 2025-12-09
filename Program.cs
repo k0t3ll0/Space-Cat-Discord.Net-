@@ -27,6 +27,8 @@ namespace Space_Cat_v3
                 .AddYamlFile("Config\\config.yml")
                 //создать
                 .Build();
+
+           
             
             //Создаём билдер для сервисов
             using IHost host = Host.CreateDefaultBuilder()
@@ -46,6 +48,16 @@ namespace Space_Cat_v3
                     .AddSingleton<PrefixHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<ReactionRoleService>()
+                    .AddLavaNode(x=>
+                    {
+                        x.Hostname = "127.0.0.1";
+                        x.Port = 2333;
+                        x.IsSecure = false;
+                        x.Authorization = "youshallnotpass";
+                        x.Version = 4;
+                        x.SelfDeaf = true;
+                    })
+                    .AddSingleton<AudioService>()
                 )
                 .Build();
             
@@ -67,18 +79,20 @@ namespace Space_Cat_v3
             await pCommands.InitializeAsync();
 
             var rCommands = provider.GetRequiredService<ReactionRoleService>();
-            await rCommands.InitializeAsync();
+            await rCommands.InitializeAsync();           
+            
 
-            List<ulong> ids = config["Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
+            List<ulong> ids = config["Discord:Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
 
             _client.Ready += async() => 
             {
                 for (int i = 0; i < ids.Count; i++)
                     await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);
                 await Task.CompletedTask;
+                await provider.UseLavaNodeAsync();
             };
 
-            await _client.LoginAsync(TokenType.Bot, config["tokens:discord"]);
+            await _client.LoginAsync(TokenType.Bot, config["Discord:tokens:discord"]);
             await _client.StartAsync();
 
             await Task.Delay(-1);

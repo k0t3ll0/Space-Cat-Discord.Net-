@@ -1,7 +1,8 @@
-prefix: "!,&&"
-Guild : "339782218136158208, 1338112270252900363"
-tokens: 
-   discord : MTMzODExMDc1OTE0MTY0MjI3MA.GcMnjI._YO_LuBsl_IqKwWcQqtA0itAQi4NuOMpbZQ_U4
+Discord:
+   prefix: "!,&&"
+   Guild : "339782218136158208, 1338112270252900363"
+   tokens: 
+       discord : MTMzODExMDc1OTE0MTY0MjI3MA.GcMnjI._YO_LuBsl_IqKwWcQqtA0itAQi4NuOMpbZQ_U4
 
 Lavalink: 
     Host: "lava-v4.ajieblogs.eu.org"

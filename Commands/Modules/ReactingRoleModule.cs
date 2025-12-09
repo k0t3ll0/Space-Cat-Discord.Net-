@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Commands;
+using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 
 namespace Space_Cat_v3.Commands.Modules
@@ -289,7 +290,36 @@ namespace Space_Cat_v3.Commands.Modules
                 await ReplyAsync("❌ Ошибка при получении статистики!");
             }
         }
+        [Command("set-role")]
+        [RequireUserPermission(GuildPermission.ManageRoles)]
+        public async Task SetUserRole(IGuildUser user, SocketRole role)
+        {
+            try
+            {
+                await user.AddRoleAsync(role);
+                _logger.LogInformation("Роль: {Role} выдана {User}", role.Name, user.Nickname);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Роль не выдана по причине {exception}", ex.Message);
+            }
 
+        }
+        [Command("remove-role")]
+        [RequireUserPermission(GuildPermission.ManageRoles)]
+        public async Task RemoveUserRole(IGuildUser user, SocketRole role)
+        {
+            try
+            {
+                await user.RemoveRoleAsync(role);
+                _logger.LogInformation("Роль: {Role} забрана у {User}", role.Name, user.Nickname);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Роль не выдана по причине {exception}", ex.Message);
+            }
+
+        }
         #endregion
     }
 }
