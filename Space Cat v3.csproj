@@ -5,8 +5,25 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-  </PropertyGroup>
+  
 
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- Один EXE файл -->
+    <SelfContained>true</SelfContained>
+    <!-- Включает runtime -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <!-- AOT компиляция -->
+    <!-- Оптимизации -->
+    <DebugType>embedded</DebugType>
+    <!-- Встраивание PDB -->
+    <DebugSymbols>true</DebugSymbols>
+    
+    <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    
+  </PropertyGroup>
+  
   <ItemGroup>
     <PackageReference Include="Discord.Net" Version="3.18.0" />
     <PackageReference Include="Discord.Net.Commands" Version="3.18.0" />
