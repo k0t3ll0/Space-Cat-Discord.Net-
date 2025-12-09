@@ -6,10 +6,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Discord.Interactions;
 using Space_Cat_v3.Commands.Handlers;
-using Space_Cat_v3.Commands.Modules;
 using Victoria;
-using System;
-using static System.Net.WebRequestMethods;
+
 
 namespace Space_Cat_v3
 {

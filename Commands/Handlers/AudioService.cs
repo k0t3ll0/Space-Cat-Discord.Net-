@@ -37,8 +37,7 @@ namespace Space_Cat_v3.Commands.Handlers
 
         private Task OnTrackStartAsync(TrackStartEventArg arg)
         {
-            return SendAndLogMessageAsync(arg.GuildId,
-                $"Сейчас играет: {arg.Track.Title}");
+            return Task.CompletedTask;// SendAndLogMessageAsync(arg.GuildId, $"Сейчас играет: {arg.Track.Title}");
         }
 
         private Task OnTrackEndAsync(TrackEndEventArg arg)
