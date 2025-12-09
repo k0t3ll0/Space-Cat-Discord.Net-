@@ -162,7 +162,7 @@ public sealed class AudioModule(
         try
         {
             await player.StopAsync(lavaNode, player.Track);
-            await ReplyAsync("Больше нечего проигрывать.");
+            await ReplyAsync("Больше нечего проигрывать.");            
         }
         catch (Exception exception)
         {

@@ -5,23 +5,23 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-  
 
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
     <PublishSingleFile>true</PublishSingleFile>
     <!-- Один EXE файл -->
     <SelfContained>true</SelfContained>
     <!-- Включает runtime -->
     <PublishReadyToRun>true</PublishReadyToRun>
     <!-- AOT компиляция -->
-    <!-- Оптимизации -->
     <DebugType>embedded</DebugType>
     <!-- Встраивание PDB -->
     <DebugSymbols>true</DebugSymbols>
-    
+
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
-    
+
   </PropertyGroup>
   
   <ItemGroup>
