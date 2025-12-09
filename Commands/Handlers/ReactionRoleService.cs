@@ -55,6 +55,7 @@ public class ReactionRoleService : IDisposable
         _guildBindings = new ConcurrentDictionary<ulong, GuildBindings>();
 
         _logger?.LogInformation("ReactionRoleService создан");
+         InitializeAsync();
     }
 
     public async Task InitializeAsync()

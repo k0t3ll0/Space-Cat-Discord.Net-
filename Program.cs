@@ -42,7 +42,6 @@ namespace Space_Cat_v3
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<PrefixHandler>()
                     .AddSingleton(x => new CommandService())
-                    .AddSingleton(x=>new CommandService())
                     .AddSingleton<ReactionRoleService>()
                     
                 )
