@@ -6,6 +6,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Discord.Interactions;
 using Space_Cat_v3.Commands.Handlers;
+using Space_Cat_v3.Commands.Modules;
+using Victoria;
+using System;
+using static System.Net.WebRequestMethods;
 
 namespace Space_Cat_v3
 {
@@ -23,8 +27,7 @@ namespace Space_Cat_v3
                 .AddYamlFile("Config\\config.yml")
                 //создать
                 .Build();
-
-
+            
             //Создаём билдер для сервисов
             using IHost host = Host.CreateDefaultBuilder()
                 .ConfigureServices((_, services) =>
@@ -43,7 +46,6 @@ namespace Space_Cat_v3
                     .AddSingleton<PrefixHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<ReactionRoleService>()
-                    
                 )
                 .Build();
             
@@ -59,12 +61,13 @@ namespace Space_Cat_v3
             var config = provider.GetRequiredService<IConfigurationRoot>();
 
             var sCommands = provider.GetRequiredService<InteractionService>();
-
             await provider.GetRequiredService<InteractionHandler>().InitializeAsync();
 
             var pCommands = provider.GetRequiredService<PrefixHandler>();
-
             await pCommands.InitializeAsync();
+
+            var rCommands = provider.GetRequiredService<ReactionRoleService>();
+            await rCommands.InitializeAsync();
 
             List<ulong> ids = config["Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
 

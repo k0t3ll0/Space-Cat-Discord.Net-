@@ -2,12 +2,7 @@
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 
 public class ReactionRoleService : IDisposable
 {
@@ -55,7 +50,7 @@ public class ReactionRoleService : IDisposable
         _guildBindings = new ConcurrentDictionary<ulong, GuildBindings>();
 
         _logger?.LogInformation("ReactionRoleService создан");
-         InitializeAsync();
+         
     }
 
     public async Task InitializeAsync()

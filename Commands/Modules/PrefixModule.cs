@@ -21,7 +21,7 @@ namespace Space_Cat_v3.Commands.Modules
             await Context.Channel.SendMessageAsync(Context.User.GlobalName + " " + randomValue);
         }
 
-        /*[Command("embed")]
+        [Command("embed")]
         public async Task Embed()
         {
             //Эмбед - сообщение в виде плашки
@@ -35,7 +35,7 @@ namespace Space_Cat_v3.Commands.Modules
 
             await Context.Channel.SendMessageAsync(embed: message.Build());
         }
-        [Command("role")]
+        /*[Command("role")]
         public async Task GetRole()
         {
             
@@ -48,7 +48,7 @@ namespace Space_Cat_v3.Commands.Modules
                 await Task.CompletedTask;
             }
 
-        }
+        }*/
         [Command("clear")]
         [RequireUserPermission(GuildPermission.ManageMessages)]
         public async Task DeleteAllMessages()
@@ -59,6 +59,6 @@ namespace Space_Cat_v3.Commands.Modules
             IUserMessage m = await ReplyAsync($"I have deleted {messages.Count()} messages for ya. :)");
             await Task.Delay(delay);
             await m.DeleteAsync();
-        }*/
+        }
     }
 }
