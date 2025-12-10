@@ -1,11 +1,5 @@
 ﻿using Discord;
 using Discord.Commands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Channels;
-using System.Threading.Tasks;
 
 namespace Space_Cat_v3.Commands.Modules
 {
@@ -19,7 +13,8 @@ namespace Space_Cat_v3.Commands.Modules
         }
 
         [Command("random")]
-        public async Task Random( int min, int max)
+        [Summary("% of gay")]
+        public async Task Random(int min, int max)
         {
             var randomValue = new System.Random().Next(min, max + 1);
             await Context.Channel.SendMessageAsync(Context.User.GlobalName + " " + randomValue);
@@ -42,14 +37,13 @@ namespace Space_Cat_v3.Commands.Modules
         [Command("role")]
         public async Task GetRole()
         {
-            
+
             if (Context.Channel.Name == "verify")
             {
                 var roles = Context.Guild.Roles;
                 var memberRole = roles.First(x => x.Name == "member");
                 IGuildUser member = (IGuildUser)Context.User;
-                var task = member?.AddRoleAsync(memberRole);
-                await task;
+                await member?.AddRoleAsync(memberRole)!;
             }
 
         }
@@ -64,5 +58,19 @@ namespace Space_Cat_v3.Commands.Modules
             await Task.Delay(delay);
             await m.DeleteAsync();
         }
+
+        [Command("help")]
+        public async Task CheckAllCommands()
+        {
+            List<string> info = File.ReadAllLines("commands.txt").ToList();
+            var embed = new EmbedBuilder()
+            {
+                Title = "Команды бота",
+                Description = string.Join("\n", info),
+                Color = Color.Blue,
+            };
+            await ReplyAsync(embed: embed.Build());
+        }
+
     }
 }

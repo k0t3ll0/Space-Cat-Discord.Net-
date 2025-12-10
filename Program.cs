@@ -1,24 +1,22 @@
-﻿
-using Discord;
+﻿using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Discord.Interactions;
 using Space_Cat_v3.Commands.Handlers;
-using Space_Cat_v3.Commands.Modules;
-using Serilog;
-using Serilog.Events;
+using Victoria;
+
 
 namespace Space_Cat_v3
 {
     internal class Program
     {
-
+        
         static async Task Main(string[] args)
         {
+            
             //Создаём конфиг через билдер
             var config = new ConfigurationBuilder()
                 //установить путь
@@ -28,12 +26,8 @@ namespace Space_Cat_v3
                 //создать
                 .Build();
 
-            Log.Logger = new LoggerConfiguration()
-                   .MinimumLevel.Debug()
-                   .Enrich.FromLogContext()
-                   .WriteTo.Console()
-                   .CreateLogger();
-
+           
+            
             //Создаём билдер для сервисов
             using IHost host = Host.CreateDefaultBuilder()
                 .ConfigureServices((_, services) =>
@@ -42,6 +36,7 @@ namespace Space_Cat_v3
                     // Add the DiscordSocketClient, along with specifying the GatewayIntents and user caching
                     .AddSingleton(x => new DiscordSocketClient(new DiscordSocketConfig
                     {
+                        UseInteractionSnowflakeDate = false,
                         GatewayIntents = GatewayIntents.All,
                         AlwaysDownloadUsers = true,
                     }))
@@ -49,10 +44,28 @@ namespace Space_Cat_v3
                     .AddSingleton<InteractionHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<PrefixHandler>()
+                    .AddSingleton(x => new CommandService())
+                    .AddSingleton<ReactionRoleService>()
+                    .AddLavaNode(x=>
+                    {
+                        x.Hostname = "127.0.0.1";
+                        x.Port = 2333;
+                        x.IsSecure = false;
+                        x.Authorization = "youshallnotpass";
+                        x.Version = 4;
+                        x.SelfDeaf = true;
+                        x.EnableResume = true;
+                        x.SocketConfiguration = new()
+                        {
+                            BufferSize = 1024,
+                            ReconnectAttempts = -1,
+                            ReconnectDelay = 2000
+                        };
+                    })
+                    .AddSingleton<AudioService>()
                 )
                 .Build();
             
-
             await RunAsync(host);
         }
 
@@ -65,46 +78,31 @@ namespace Space_Cat_v3
             var config = provider.GetRequiredService<IConfigurationRoot>();
 
             var sCommands = provider.GetRequiredService<InteractionService>();
-
             await provider.GetRequiredService<InteractionHandler>().InitializeAsync();
 
             var pCommands = provider.GetRequiredService<PrefixHandler>();
-            pCommands.AddModule<PrefixModule>();
-
             await pCommands.InitializeAsync();
 
-            // Subscribe to client log events
-            _client.Log += LogAsync;
-            sCommands.Log += LogAsync;
-            
+            var rCommands = provider.GetRequiredService<ReactionRoleService>();
+            await rCommands.InitializeAsync();           
             
 
-            _client.Ready += () => {  
-                
-                sCommands.RegisterCommandsToGuildAsync(ulong.Parse(config["testGuild"]));
-                return Task.CompletedTask;
+            List<ulong> ids = config["Discord:Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
+
+            _client.Ready += async() => 
+            {
+                /*for (int i = 0; i < ids.Count; i++)
+                    await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);*/
+                await sCommands.RegisterCommandsGloballyAsync();
+
+                await provider.UseLavaNodeAsync();
+                await Task.CompletedTask;
             };
 
-            await _client.LoginAsync(TokenType.Bot, config["tokens:discord"]);
+            await _client.LoginAsync(TokenType.Bot, config["Discord:tokens:discord"]);
             await _client.StartAsync();
 
             await Task.Delay(-1);
-        }
-
-        private static async Task LogAsync(LogMessage message)
-        {
-            var severity = message.Severity switch
-            {
-                LogSeverity.Critical => LogEventLevel.Fatal,
-                LogSeverity.Error => LogEventLevel.Error,
-                LogSeverity.Warning => LogEventLevel.Warning,
-                LogSeverity.Info => LogEventLevel.Information,
-                LogSeverity.Verbose => LogEventLevel.Verbose,
-                LogSeverity.Debug => LogEventLevel.Debug,
-                _ => LogEventLevel.Debug
-            };
-            Log.Write(severity, message.Exception, "[{Source}] {Message}", message.Source, message.Message);
-            await Task.CompletedTask;
         }
     }
 }

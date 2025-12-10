@@ -1,0 +1,32 @@
+{
+  "339782218136158208": {
+    "GuildId": 339782218136158208,
+    "Bindings": [
+      {
+        "MessageId": 1447935471606038528,
+        "ChannelId": 1447632682715447317,
+        "GuildId": 339782218136158208,
+        "Emote": "😂",
+        "RoleId": 1429378392490508390,
+        "RemoveOnUnreact": true,
+        "IsUnique": false,
+        "UniqueGroup": null,
+        "CreatedAt": "2025-12-09T12:59:16.0717149Z",
+        "CreatedBy": 376323754042720256
+      },
+      {
+        "MessageId": 1447935471606038528,
+        "ChannelId": 1447632682715447317,
+        "GuildId": 339782218136158208,
+        "Emote": "🤡",
+        "RoleId": 589174869426700288,
+        "RemoveOnUnreact": true,
+        "IsUnique": false,
+        "UniqueGroup": null,
+        "CreatedAt": "2025-12-09T13:29:54.1903935Z",
+        "CreatedBy": 376323754042720256
+      }
+    ],
+    "Enabled": true
+  }
+}

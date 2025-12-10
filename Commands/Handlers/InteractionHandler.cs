@@ -1,101 +1,193 @@
 ﻿using Discord;
 using Discord.Interactions;
 using Discord.WebSocket;
-using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
-
-namespace Space_Cat_v3.Commands.Handlers
+namespace Space_Cat_v3.Commands.Handlers;
+public class InteractionHandler
 {
-    public class InteractionHandler
+    //регистрация DI
+    private readonly DiscordSocketClient _client;
+    private readonly InteractionService _interactionService;
+    private readonly IServiceProvider _services;
+
+    //конструктор для определения
+    public InteractionHandler(DiscordSocketClient client, IServiceProvider services, InteractionService interactionService)
     {
-        private readonly DiscordSocketClient _client;
-        private readonly InteractionService _commands;
-        private readonly IServiceProvider? _services;
+        _client = client;
+        _services = services;
+        _interactionService = interactionService;
+    }
 
-        public InteractionHandler(IServiceProvider services)
+    public async Task InitializeAsync()
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        try
         {
-            _client = services.GetRequiredService<DiscordSocketClient>();
-            _commands = services.GetRequiredService<InteractionService>();
-            _services = services;
+            Console.WriteLine("🚀 Инициализация обработчика взаимодействий...");
+
+            // Добавляем все публичные модули, наследующие InteractionModuleBase<T>
+            await _interactionService.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
+            Console.WriteLine($"✅ Зарегистрировано модулей: {_interactionService.Modules.Count}");
+
+            // Подписываемся на события
+            _client.InteractionCreated += HandleInteractionAsync;
+            _interactionService.SlashCommandExecuted += SlashCommandExecutedAsync;
+            _interactionService.ContextCommandExecuted += ContextCommandExecutedAsync;
+            _interactionService.ComponentCommandExecuted += ComponentCommandExecutedAsync;
+
+            Console.WriteLine("✅ Обработчик взаимодействий инициализирован");
+            
         }
-
-        //Создаём асинхронный обработчик
-        public async Task InitializeAsync()
+        catch (Exception ex)
         {
-            // Add the public modules that inherit InteractionModuleBase<T> to the InteractionService
-            await _commands.AddModulesAsync(Assembly.GetEntryAssembly(), _services);
-
-            // Process the InteractionCreated payloads to execute Interactions commands
-            _client.InteractionCreated += HandleInteraction;
-
-            // Process the command execution results 
-            _commands.SlashCommandExecuted += SlashCommandExecuted;
-            _commands.ContextCommandExecuted += ContextCommandExecuted;
-            _commands.ComponentCommandExecuted += ComponentCommandExecuted;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Ошибка инициализации обработчика: {ex.Message}");
+            throw;
         }
+        Console.ForegroundColor = ConsoleColor.White;
+    }
 
-        private Task ComponentCommandExecuted(ComponentCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+    // Обработчик компонентов (кнопок, выпадающих списков)
+    private Task ComponentCommandExecutedAsync(ComponentCommandInfo commandInfo, IInteractionContext context, IResult result)
+    {
+        
+        if (!result.IsSuccess)
         {
-            return Task.CompletedTask;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Ошибка компонента {commandInfo.Name}: {result.ErrorReason}");
         }
+        return Task.CompletedTask;
+    }
 
-        private Task ContextCommandExecuted(ContextCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+    // Обработчик контекстных команд (правая кнопка -> Apps)
+    private Task ContextCommandExecutedAsync(ContextCommandInfo commandInfo, IInteractionContext context, IResult result)
+    {
+        if (!result.IsSuccess)
         {
-            return Task.CompletedTask;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Ошибка контекстной команды {commandInfo.Name}: {result.ErrorReason}");
         }
+        return Task.CompletedTask;
+    }
 
-        private async Task SlashCommandExecuted(SlashCommandInfo arg1, IInteractionContext arg2, IResult arg3)
+    // Обработчик слеш-команд
+    private async Task SlashCommandExecutedAsync(SlashCommandInfo commandInfo, IInteractionContext context, IResult result)
+    {
+        if (!result.IsSuccess)
         {
-            if (!arg3.IsSuccess)
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"Ошибка команды {commandInfo.Name}: {result.Error} - {result.ErrorReason}");
+
+            string errorMessage = result.Error switch
             {
-                switch (arg3.Error)
-                {
-                    case InteractionCommandError.UnmetPrecondition:
-                        await arg2.Interaction.RespondAsync($"Unmet Precondition: {arg3.ErrorReason}");
-                        break;
-                    case InteractionCommandError.UnknownCommand:
-                        await arg2.Interaction.RespondAsync("Unknown command");
-                        break;
-                    case InteractionCommandError.BadArgs:
-                        await arg2.Interaction.RespondAsync("Invalid number or arguments");
-                        break;
-                    case InteractionCommandError.Exception:
-                        await arg2.Interaction.RespondAsync($"Command exception: {arg3.ErrorReason}");
-                        break;
-                    case InteractionCommandError.Unsuccessful:
-                        await arg2.Interaction.RespondAsync("Command could not be executed");
-                        break;
-                    default:
-                        break;
-                }
-            }
-            await Task.CompletedTask;
-        }
+                InteractionCommandError.UnmetPrecondition => $"🚫 {result.ErrorReason}",
+                InteractionCommandError.UnknownCommand => "❓ Неизвестная команда",
+                InteractionCommandError.BadArgs => "📝 Неверные аргументы команды",
+                InteractionCommandError.Exception => $"⚠️ Ошибка выполнения: {Truncate(result.ErrorReason, 100)}",
+                InteractionCommandError.Unsuccessful => "⛔ Не удалось выполнить команду",
+                _ => $"❌ Ошибка: {Truncate(result.ErrorReason, 100)}"
+            };
 
-
-        private async Task HandleInteraction(SocketInteraction arg)
-        {
             try
             {
-                // Create an execution context that matches the generic type parameter of your InteractionModuleBase<T> modules
-                var ctx = new SocketInteractionContext(_client, arg);
-                await _commands.ExecuteCommandAsync(ctx, _services);
+                if (context.Interaction.HasResponded)
+                {
+                    await context.Interaction.FollowupAsync(errorMessage, ephemeral: true);
+                }
+                else
+                {
+                    await context.Interaction.RespondAsync(errorMessage, ephemeral: true);
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                Console.WriteLine($"Не удалось отправить сообщение об ошибке: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"✅ Команда выполнена: {commandInfo.Name} пользователем {context.User.Username}");
+            
+        }
+        Console.ForegroundColor = ConsoleColor.White;
+    }
 
-                // If a Slash Command execution fails it is most likely that the original interaction acknowledgement will persist.
-                // It is a good idea to delete the original response,
-                // or at least let the user know that something went wrong during the command execution.
-                if (arg.Type == InteractionType.ApplicationCommand)
+    // Основной обработчик всех взаимодействий
+    private async Task HandleInteractionAsync(SocketInteraction interaction)
+    {
+        try
+        {
+            // Создаём контекст выполнения
+            var context = new SocketInteractionContext(_client, interaction);
+
+            // Логируем тип взаимодействия
+            LogInteractionType(interaction);
+
+            // Выполняем команду           
+            await _interactionService.ExecuteCommandAsync(context, _services);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Ошибка обработки взаимодействия: {ex.Message}");
+
+            // Отправляем сообщение об ошибке пользователю
+            try
+            {
+                if (interaction.HasResponded)
                 {
-                    var originalResponse = await arg.GetOriginalResponseAsync();
-                    await originalResponse.DeleteAsync();
+                    await interaction.FollowupAsync(
+                        "❌ Произошла ошибка при обработке команды. Попробуйте позже.",
+                        ephemeral: true);
+                }
+                else
+                {
+                    await interaction.RespondAsync(
+                        "❌ Произошла ошибка при обработке команды. Попробуйте позже.",
+                        ephemeral: true);
                 }
             }
-
+            catch
+            {
+                // Игнорируем ошибки при отправке сообщения об ошибке
+            }
         }
+    }
+
+    // Вспомогательный метод для логирования типа взаимодействия
+    private void LogInteractionType(SocketInteraction interaction)
+    {
+        string interactionType = interaction.Type switch
+        {
+            InteractionType.ApplicationCommand => "Слеш-команда",
+            InteractionType.MessageComponent => "Компонент сообщения",
+            InteractionType.ApplicationCommandAutocomplete => "Автодополнение",
+            InteractionType.ModalSubmit => "Модальное окно",
+            _ => "Неизвестный тип"
+        };
+        
+        Console.WriteLine($"📥 Взаимодействие: {interactionType} от {interaction.User.Username}");
+    }
+
+    // Вспомогательный метод для обрезки текста
+    private string Truncate(string text, int maxLength)
+    {
+        if (string.IsNullOrEmpty(text) || text.Length <= maxLength)
+            return text;
+
+        return text.Substring(0, maxLength - 3) + "...";
+    }
+
+    // Метод для очистки ресурсов (отписка от событий)
+    public async Task DisposeAsync()
+    {
+        _client.InteractionCreated -= HandleInteractionAsync;
+        _interactionService.SlashCommandExecuted -= SlashCommandExecutedAsync;
+        _interactionService.ContextCommandExecuted -= ContextCommandExecutedAsync;
+        _interactionService.ComponentCommandExecuted -= ComponentCommandExecutedAsync;
+
+        await Task.CompletedTask;
+        Console.WriteLine("✅ Обработчик взаимодействий очищен");
     }
 }
