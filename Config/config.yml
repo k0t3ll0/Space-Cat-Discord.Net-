@@ -1,15 +1,8 @@
 Discord:
    prefix: "!,&&"
-   Guild : "339782218136158208, 1338112270252900363"
+   Guild : guildIds
    tokens: 
-       discord : MTMzODExMDc1OTE0MTY0MjI3MA.GcMnjI._YO_LuBsl_IqKwWcQqtA0itAQi4NuOMpbZQ_U4
+       discord : yourBotToken
 
-Lavalink: 
-    Host: "lava-v4.ajieblogs.eu.org"
-    Port: 80
-    Password: "https://dsc.gg/ajidevserver"
-    IsSecured: false
-    ReconnectAttempts: 3
-    ReconnectInterval: 5000
 
 
