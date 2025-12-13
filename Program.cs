@@ -99,6 +99,7 @@ namespace Space_Cat_v3
 
                 await provider.UseLavaNodeAsync();
                 await Task.CompletedTask;
+                await _client.SetGameAsync("Команды бота: !help", null, ActivityType.Playing);
             };
 
             await _client.LoginAsync(TokenType.Bot, config["Discord:tokens:discord"]);
