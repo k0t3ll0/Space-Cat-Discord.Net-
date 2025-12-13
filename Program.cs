@@ -57,12 +57,13 @@ namespace Space_Cat_v3
                         x.EnableResume = true;
                         x.SocketConfiguration = new()
                         {
-                            BufferSize = 1024,
+                            BufferSize = 8144,
                             ReconnectAttempts = -1,
-                            ReconnectDelay = 2000
+                            ReconnectDelay = 1000
                         };
                     })
                     .AddSingleton<AudioService>()
+                    .AddSingleton<SimpleAutoRoleService>()
                 )
                 .Build();
             
@@ -84,8 +85,9 @@ namespace Space_Cat_v3
             await pCommands.InitializeAsync();
 
             var rCommands = provider.GetRequiredService<ReactionRoleService>();
-            await rCommands.InitializeAsync();           
-            
+            await rCommands.InitializeAsync();
+
+            var aCommands = provider.GetRequiredService<SimpleAutoRoleService>();
 
             List<ulong> ids = config["Discord:Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
 

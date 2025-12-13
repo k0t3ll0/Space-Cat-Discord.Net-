@@ -1,7 +1,5 @@
 ﻿using Discord;
 using Discord.Commands;
-using Discord.WebSocket;
-using Lavalink4NET.Players;
 using Space_Cat_v3.Commands.Handlers;
 using Victoria;
 using Victoria.Rest.Search;
@@ -26,7 +24,7 @@ public sealed class AudioModule(
         }
 
         try
-        {   
+        {
             await lavaNode.JoinAsync(voiceState.VoiceChannel);
             await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
             audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
@@ -77,15 +75,15 @@ public sealed class AudioModule(
             }
 
             try
-            {                     
-                    player = await lavaNode.JoinAsync(voiceState.VoiceChannel);
-                    await ReplyAsync($"Подключился {voiceState.VoiceChannel.Name}!");
-                    audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
+            {
+                player = await lavaNode.JoinAsync(voiceState.VoiceChannel);
+                await ReplyAsync($"Подключился {voiceState.VoiceChannel.Name}!");
+                audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
             }
             catch (Exception exception)
-            {             
-                await ReplyAsync(exception.Message);      
-            }   
+            {
+                await ReplyAsync(exception.Message);
+            }
         }
 
         var searchResponse = await lavaNode.LoadTrackAsync(searchQuery);
@@ -162,7 +160,7 @@ public sealed class AudioModule(
         try
         {
             await player.StopAsync(lavaNode, player.Track);
-            await ReplyAsync("Больше нечего проигрывать.");            
+            await ReplyAsync("Больше нечего проигрывать.");
         }
         catch (Exception exception)
         {
@@ -208,4 +206,26 @@ public sealed class AudioModule(
             await ReplyAsync(exception.Message);
         }
     }
+    [Command("volume")]
+    public async Task ChangeVolume(string volume)
+    {
+        if (!string.IsNullOrWhiteSpace(volume))
+        {
+            try
+            {
+                var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
+                if (player is not null)
+                {
+                    await player.SetVolumeAsync(lavaNode, int.Parse(volume));
+                    await ReplyAsync($"Текущая громкость: {volume}");
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Ошибка изменения громкости: {ex.Message}");
+            }
+        }
+
+    }
+
 }

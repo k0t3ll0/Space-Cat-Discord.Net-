@@ -22,6 +22,9 @@ namespace Space_Cat_v3.Commands.Handlers
         private readonly string _dataFile = "autoroles.json";
         private readonly ILogger _logger;
 
+        private int TotalRoles => _settings.Values.Sum(x=>x.RoleIds.Count);
+        private int TotalGuilds => _settings.Count;
+
         public SimpleAutoRoleService(DiscordSocketClient client, ILogger<SimpleAutoRoleService> logger)
         {
             _client = client;
@@ -55,6 +58,7 @@ namespace Space_Cat_v3.Commands.Handlers
                         _settings[kvp.Key] = kvp.Value;
                     }
                 }
+                _logger.LogInformation("Файл автовыдачи загружен для {TotalGuilds} серверов, {TotalRoles} ролей", TotalGuilds, TotalRoles);
             }
             catch (Exception ex)
             {
