@@ -8,10 +8,9 @@ namespace Space_Cat_v3.Commands.Modules;
 
 public sealed class AudioModule(
     LavaNode<LavaPlayer<LavaTrack>, LavaTrack> lavaNode,
-    AudioService audioService)
-    : ModuleBase<SocketCommandContext>
-{
-    private static readonly IEnumerable<int> Range = Enumerable.Range(1900, 2000);
+    AudioService audioService) : ModuleBase<SocketCommandContext>
+{ 
+    //private static readonly IEnumerable<int> Range = Enumerable.Range(1900, 2000);
 
     [Command("join")]
     public async Task JoinAsync()
@@ -25,6 +24,7 @@ public sealed class AudioModule(
 
         try
         {
+            
             await lavaNode.JoinAsync(voiceState.VoiceChannel);
             await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
             audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
@@ -37,7 +37,7 @@ public sealed class AudioModule(
     [Command("leave")]
     public async Task LeaveAsync()
     {
-        var voiceChannel = (Context.User as IVoiceState).VoiceChannel;
+        var voiceChannel = ((IVoiceState)Context.User).VoiceChannel;
         if (voiceChannel == null)
         {
             await ReplyAsync("❌ Вы должны быть в голосовом каналу!");
@@ -64,7 +64,7 @@ public sealed class AudioModule(
         }
         if ((Context.Guild.CurrentUser as IVoiceState).VoiceChannel is null)
             await JoinAsync();
-        var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
+        var player = await lavaNode.TryGetPlayerAsync(Context.Channel.Id);
         if (player == null)
         {
             var voiceState = Context.User as IVoiceState;
@@ -227,5 +227,6 @@ public sealed class AudioModule(
         }
 
     }
+    
 
 }

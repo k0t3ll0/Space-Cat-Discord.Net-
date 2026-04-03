@@ -46,11 +46,11 @@ namespace Space_Cat_v3
                     .AddSingleton<PrefixHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<ReactionRoleService>()
+                    .AddSingleton<AudioService>()
                     .AddLavaNode(x=>
                     {
                         x.Hostname = "127.0.0.1";
                         x.Port = 2333;
-                        x.IsSecure = false;
                         x.Authorization = "youshallnotpass";
                         x.Version = 4;
                         x.SelfDeaf = true;
@@ -61,8 +61,7 @@ namespace Space_Cat_v3
                             ReconnectAttempts = -1,
                             ReconnectDelay = 1000
                         };
-                    })
-                    .AddSingleton<AudioService>()
+                    })  
                     .AddSingleton<SimpleAutoRoleService>()
                 )
                 .Build();
@@ -87,7 +86,7 @@ namespace Space_Cat_v3
             var rCommands = provider.GetRequiredService<ReactionRoleService>();
             await rCommands.InitializeAsync();
 
-            var aCommands = provider.GetRequiredService<SimpleAutoRoleService>();
+            var aCommands = provider.GetRequiredService<SimpleAutoRoleService>();   
 
             List<ulong> ids = config["Discord:Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
 
@@ -96,7 +95,6 @@ namespace Space_Cat_v3
                 /*for (int i = 0; i < ids.Count; i++)
                     await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);*/
                 await sCommands.RegisterCommandsGloballyAsync();
-
                 await provider.UseLavaNodeAsync();
                 await Task.CompletedTask;
                 await _client.SetGameAsync("Команды бота: !help", null, ActivityType.Playing);
