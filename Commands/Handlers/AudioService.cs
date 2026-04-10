@@ -5,7 +5,8 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
 using Victoria;
 using Victoria.WebSocket.EventArgs;
-
+using Reason = Victoria.Enums.TrackEndReason; 
+ 
 namespace Space_Cat_v3.Commands.Handlers
 {
     public sealed class AudioService
@@ -33,6 +34,13 @@ namespace Space_Cat_v3.Commands.Handlers
             _lavaNode.OnPlayerUpdate += OnPlayerUpdateAsync;
             _lavaNode.OnTrackEnd += OnTrackEndAsync;
             _lavaNode.OnTrackStart += OnTrackStartAsync;
+            _lavaNode.OnTrackStuck += _lavaNode_OnTrackStuck;
+        }
+
+        private async Task _lavaNode_OnTrackStuck(TrackStuckEventArg arg)
+        {
+            var player = await _lavaNode.TryGetPlayerAsync(arg.GuildId);
+            await player.SkipAsync(_lavaNode);
         }
 
         private Task OnTrackStartAsync(TrackStartEventArg arg)
@@ -40,9 +48,18 @@ namespace Space_Cat_v3.Commands.Handlers
             return Task.CompletedTask;// SendAndLogMessageAsync(arg.GuildId, $"Сейчас играет: {arg.Track.Title}");
         }
 
-        private Task OnTrackEndAsync(TrackEndEventArg arg)
-        {
-            return SendAndLogMessageAsync(arg.GuildId, $"{arg.Track.Title} завершил работу с причиной: {arg.Reason}");
+        private async Task OnTrackEndAsync(TrackEndEventArg arg)
+        {    
+            var player = await _lavaNode.TryGetPlayerAsync(arg.GuildId);
+            if (player is not null)
+            {
+                if (player.GetQueue().TryDequeue(out var nextTrack))
+                {
+                    await player.PlayAsync(_lavaNode, nextTrack);
+                }
+                else
+                    await SendAndLogMessageAsync(arg.GuildId, $"{arg.Track.Title} завершил работу с причиной: {arg.Reason}");
+            }
         }
 
         private Task OnPlayerUpdateAsync(PlayerUpdateEventArg arg)

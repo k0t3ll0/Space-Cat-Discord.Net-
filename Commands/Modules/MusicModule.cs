@@ -1,6 +1,7 @@
 ﻿using Discord;
 using Discord.Commands;
 using Space_Cat_v3.Commands.Handlers;
+using System.Text;
 using Victoria;
 using Victoria.Rest.Search;
 
@@ -9,9 +10,7 @@ namespace Space_Cat_v3.Commands.Modules;
 public sealed class AudioModule(
     LavaNode<LavaPlayer<LavaTrack>, LavaTrack> lavaNode,
     AudioService audioService) : ModuleBase<SocketCommandContext>
-{ 
-    //private static readonly IEnumerable<int> Range = Enumerable.Range(1900, 2000);
-
+{
     [Command("join")]
     public async Task JoinAsync()
     {
@@ -21,10 +20,8 @@ public sealed class AudioModule(
             await ReplyAsync("Вы должны быть подключены к каналу!");
             return;
         }
-
         try
         {
-            
             await lavaNode.JoinAsync(voiceState.VoiceChannel);
             await ReplyAsync($"Joined {voiceState.VoiceChannel.Name}!");
             audioService.TextChannels.TryAdd(Context.Guild.Id, Context.Channel.Id);
@@ -53,10 +50,10 @@ public sealed class AudioModule(
             await ReplyAsync(exception.Message);
         }
     }
-
     [Command("play")]
     public async Task PlayAsync([Remainder] string searchQuery)
     {
+        // 1. Проверка голосового канала и подключение...
         if (string.IsNullOrWhiteSpace(searchQuery))
         {
             await ReplyAsync("Введите ссылку на музыку.");
@@ -64,8 +61,8 @@ public sealed class AudioModule(
         }
         if ((Context.Guild.CurrentUser as IVoiceState).VoiceChannel is null)
             await JoinAsync();
-        var player = await lavaNode.TryGetPlayerAsync(Context.Channel.Id);
-        if (player == null)
+        var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
+        if (player is null)
         {
             var voiceState = Context.User as IVoiceState;
             if (voiceState?.VoiceChannel == null)
@@ -86,23 +83,67 @@ public sealed class AudioModule(
             }
         }
 
-        var searchResponse = await lavaNode.LoadTrackAsync(searchQuery);
-        if (searchResponse.Type is SearchType.Empty or SearchType.Error)
-        {
-            await ReplyAsync($"Не могу найти ничего по запросу: `{searchQuery}`.");
-            return;
-        }
+        // 2. Загружаем треки
+        var loadResult = await lavaNode.LoadTrackAsync(searchQuery);
 
-        var track = searchResponse.Tracks.FirstOrDefault();
-        if (player.GetQueue().Count == 0)
+        // 3. Обрабатываем результат
+        switch (loadResult.Type)
+        {
+            case SearchType.Track:
+                // Один трек
+                await PlayTrackAsync(player, loadResult.Tracks.First());
+                break;
+
+            case SearchType.Playlist:
+                // Плейлист – добавляем все треки в очередь
+                var playlist = loadResult.Playlist;
+                var tracks = loadResult.Tracks.ToList();
+
+                foreach (var track in tracks)
+                {
+                    player.GetQueue().Enqueue(track);
+                }
+                // Если ничего не играет – запускаем первый трек
+                if (player!.Track == null)
+                {
+                    await player.SkipAsync(lavaNode);
+                    await player.PlayAsync(lavaNode, tracks.First()); 
+                    await ReplyAsync($"🎶 Сейчас играет: {tracks.First().Title}\n📋 Добавлено {tracks.Count} треков из плейлиста `{playlist.Name}`");
+                }
+                else
+                {
+                    await ReplyAsync($"📋 Добавлено {tracks.Count} треков из плейлиста `{playlist.Name}` в очередь.");
+                }
+                break;
+
+            case SearchType.Search:
+                // Результат поиска – берём первый трек
+                var searchTrack = loadResult.Tracks.First();
+                await PlayTrackAsync(player, searchTrack);
+                break;
+
+            case SearchType.Empty:
+                await ReplyAsync($"Ничего не нашлось по запросу {searchQuery}");
+                break;
+            case SearchType.Error:
+                await ReplyAsync($"❌ Не удалось загрузить: {searchQuery}");
+                break;
+
+        }
+    }
+
+    private async Task PlayTrackAsync(LavaPlayer<LavaTrack> player, LavaTrack track)
+    {
+        if (player.Track is not null)
+        {
+            player.GetQueue().Enqueue(track);
+            await ReplyAsync($"➕ Добавлено в очередь: {track.Title}");
+        }
+        else
         {
             await player.PlayAsync(lavaNode, track);
-            await ReplyAsync($"Now playing: {track.Title}");
-            return;
+            await ReplyAsync($"🎶 Сейчас играет: {track.Title}");
         }
-
-        player.GetQueue().Enqueue(track);
-        await ReplyAsync($"Добавил {track.Title} в очередь.");
     }
 
     [Command("pause"), RequirePlayer]
@@ -160,7 +201,7 @@ public sealed class AudioModule(
         try
         {
             await player.StopAsync(lavaNode, player.Track);
-            await ReplyAsync("Больше нечего проигрывать.");
+            await LeaveAsync();
         }
         catch (Exception exception)
         {
@@ -168,43 +209,21 @@ public sealed class AudioModule(
         }
     }
 
-    [Command("skip"), RequirePlayer]
+    [Command("next"), RequirePlayer]
     public async Task SkipAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
-        if (!player.State.IsConnected)
+        if (player?.Track == null)
         {
-            await ReplyAsync("Воу погоди, не могу пропустить когда ничего нету.");
+            await ReplyAsync("❌ Сейчас ничего не играет.");
             return;
         }
+        var oldTrack = player.Track;
+        var nextTrack = player.GetQueue().First();
+        await player.PlayAsync(lavaNode, nextTrack, false);
+        await ReplyAsync($"⏭ Пропущен: **{oldTrack.Title}**\n▶ Теперь играет: **{nextTrack.Title}**");
 
-        var voiceChannelUsers = Context.Guild.CurrentUser.VoiceChannel
-            .Users
-            .Where(x => !x.IsBot)
-            .ToArray();
 
-        if (!audioService.VoteQueue.Add(Context.User.Id))
-        {
-            await ReplyAsync("Вы можете проголосовать снова.");
-            return;
-        }
-
-        var percentage = audioService.VoteQueue.Count / voiceChannelUsers.Length * 100;
-        if (percentage < 85)
-        {
-            await ReplyAsync("Вам нужно больше 85% голосов для пропуска.");
-            return;
-        }
-
-        try
-        {
-            var (skipped, currenTrack) = await player.SkipAsync(lavaNode);
-            await ReplyAsync($"Пропущен: {skipped.Title}\nТекущий: {currenTrack.Title}");
-        }
-        catch (Exception exception)
-        {
-            await ReplyAsync(exception.Message);
-        }
     }
     [Command("volume")]
     public async Task ChangeVolume(string volume)
@@ -220,13 +239,51 @@ public sealed class AudioModule(
                     await ReplyAsync($"Текущая громкость: {volume}");
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Ошибка изменения громкости: {ex.Message}");
             }
         }
 
     }
-    
+    [Command("playlist")]
+    public async Task CheckQueue()
+    {
+        var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
+        var queue = player.GetQueue();
+        var currentTrack = player.Track;
+
+        if (queue.Count == 0 && currentTrack == null)
+        {
+            await ReplyAsync("📭 Очередь пуста.");
+            return;
+        }
+
+        var description = new StringBuilder();
+
+        if (currentTrack != null)
+            description.AppendLine($"🎵 **Сейчас играет:** {currentTrack.Title}");
+
+        if (queue.Count > 0)
+        {
+            description.AppendLine("\n**В очереди:**");
+            int index = 1;
+            foreach (var track in queue.Take(10)) // ограничим вывод первыми 10 треками
+            {
+                description.AppendLine($"{index++}. {track.Title}");
+            }
+
+            if (queue.Count > 10)
+                description.AppendLine($"... и ещё {queue.Count - 10} треков.");
+        }
+
+        var embed = new EmbedBuilder()
+            .WithTitle("🎧 Очередь воспроизведения")
+            .WithDescription(description.ToString())
+            .WithColor(Color.Blue)
+            .Build();
+
+        await ReplyAsync(embed: embed);
+    }
 
 }
