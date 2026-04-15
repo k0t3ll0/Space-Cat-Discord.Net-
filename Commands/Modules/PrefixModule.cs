@@ -98,6 +98,7 @@ namespace Space_Cat_v3.Commands.Modules
         }
 
         [Command("help")]
+        [Alias ("h")]
         public async Task CheckAllCommands()
         {
             List<string> info = File.ReadAllLines("commands.txt").ToList();

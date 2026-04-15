@@ -23,6 +23,7 @@ public sealed class AudioModule(
     public static readonly Dictionary<ulong, List<LavaTrack>> SavedQueues = new();
 
     [Command("join")]
+    [Alias("j")]
     public async Task JoinAsync()
     {
         var voiceState = Context.User as IVoiceState;
@@ -43,6 +44,7 @@ public sealed class AudioModule(
         }
     }
     [Command("leave")]
+    [Alias("l")]
     public async Task LeaveAsync()
     {
         var voiceChannel = ((IVoiceState)Context.User).VoiceChannel;
@@ -62,6 +64,7 @@ public sealed class AudioModule(
         }
     }
     [Command("play")]
+    [Alias("p")]
     public async Task PlayAsync([Remainder] string searchQuery)
     {
         // 1. Проверка голосового канала и подключение...
@@ -201,6 +204,7 @@ public sealed class AudioModule(
     }
 
     [Command("stop"), RequirePlayer]
+    [Alias("s")]
     public async Task StopAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
@@ -222,6 +226,7 @@ public sealed class AudioModule(
     }
 
     [Command("next"), RequirePlayer]
+    [Alias("n")]
     public async Task SkipAsync()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
@@ -259,6 +264,7 @@ public sealed class AudioModule(
 
     }
     [Command("playlist")]
+    [Alias("list")]
     public async Task CheckQueue()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
@@ -299,6 +305,7 @@ public sealed class AudioModule(
         await ReplyAsync(embed: embed);
     }
     [Command("repeat")]
+    [Alias ("r")]
     public async Task RepeatMusic([Summary("Режим повтора(None(0), One(1), All(2)")] string repeat = "0")
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);

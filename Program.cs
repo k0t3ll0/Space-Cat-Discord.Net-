@@ -25,8 +25,6 @@ namespace Space_Cat_v3
                 .AddYamlFile("Config\\config.yml")
                 //создать
                 .Build();
-
-           
             
             //Создаём билдер для сервисов
             using IHost host = Host.CreateDefaultBuilder()
@@ -88,7 +86,7 @@ namespace Space_Cat_v3
 
             var aCommands = provider.GetRequiredService<SimpleAutoRoleService>();   
 
-            List<ulong> ids = config["Discord:Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
+            List<ulong> ids = config["Discord:Guild"]!.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
 
             _client.Ready += async() => 
             {
@@ -97,7 +95,7 @@ namespace Space_Cat_v3
                 await sCommands.RegisterCommandsGloballyAsync();
                 await provider.UseLavaNodeAsync();
                 await Task.CompletedTask;
-                await _client.SetGameAsync("Команды бота: !help", null, ActivityType.Playing);
+                await _client.SetGameAsync("Команды бота: !help (!h)", null, ActivityType.Playing);
             };
 
             await _client.LoginAsync(TokenType.Bot, config["Discord:tokens:discord"]);
