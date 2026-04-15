@@ -1,6 +1,8 @@
 ﻿using Discord;
 using Discord.Commands;
 using Space_Cat_v3.Commands.Handlers;
+using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Text;
 using Victoria;
 using Victoria.Rest.Search;
@@ -11,6 +13,15 @@ public sealed class AudioModule(
     LavaNode<LavaPlayer<LavaTrack>, LavaTrack> lavaNode,
     AudioService audioService) : ModuleBase<SocketCommandContext>
 {
+    public enum RepeatMode
+    {
+        None,
+        One,
+        All
+    }
+    public static readonly Dictionary<ulong, RepeatMode> GuildRepeatMode = new();
+    public static readonly Dictionary<ulong, List<LavaTrack>> SavedQueues = new();
+
     [Command("join")]
     public async Task JoinAsync()
     {
@@ -35,7 +46,7 @@ public sealed class AudioModule(
     public async Task LeaveAsync()
     {
         var voiceChannel = ((IVoiceState)Context.User).VoiceChannel;
-        if (voiceChannel == null)
+        if (voiceChannel is null)
         {
             await ReplyAsync("❌ Вы должны быть в голосовом каналу!");
             return;
@@ -91,7 +102,7 @@ public sealed class AudioModule(
         {
             case SearchType.Track:
                 // Один трек
-                await PlayTrackAsync(player, loadResult.Tracks.First());
+                await PlayTrackAsync(player!, loadResult.Tracks.First());
                 break;
 
             case SearchType.Playlist:
@@ -106,8 +117,8 @@ public sealed class AudioModule(
                 // Если ничего не играет – запускаем первый трек
                 if (player!.Track == null)
                 {
-                    await player.SkipAsync(lavaNode);
-                    await player.PlayAsync(lavaNode, tracks.First()); 
+                    await player.SkipAsync(lavaNode, TimeSpan.Zero);
+                    //await player.PlayAsync(lavaNode, tracks.First());
                     await ReplyAsync($"🎶 Сейчас играет: {tracks.First().Title}\n📋 Добавлено {tracks.Count} треков из плейлиста `{playlist.Name}`");
                 }
                 else
@@ -119,7 +130,7 @@ public sealed class AudioModule(
             case SearchType.Search:
                 // Результат поиска – берём первый трек
                 var searchTrack = loadResult.Tracks.First();
-                await PlayTrackAsync(player, searchTrack);
+                await PlayTrackAsync(player!, searchTrack);
                 break;
 
             case SearchType.Empty:
@@ -130,6 +141,7 @@ public sealed class AudioModule(
                 break;
 
         }
+
     }
 
     private async Task PlayTrackAsync(LavaPlayer<LavaTrack> player, LavaTrack track)
@@ -159,7 +171,7 @@ public sealed class AudioModule(
         try
         {
             await player.PauseAsync(lavaNode);
-            await ReplyAsync($"На паузе: {player.Track.Title}");
+            await ReplyAsync($"На паузе: {player.Track!.Title}");
         }
         catch (Exception exception)
         {
@@ -179,8 +191,8 @@ public sealed class AudioModule(
 
         try
         {
-            await player.ResumeAsync(lavaNode, player.Track);
-            await ReplyAsync($"Возобновил: {player.Track.Title}");
+            await player.ResumeAsync(lavaNode!, player.Track);
+            await ReplyAsync($"Возобновил: {player.Track!.Title}");
         }
         catch (Exception exception)
         {
@@ -250,6 +262,7 @@ public sealed class AudioModule(
     public async Task CheckQueue()
     {
         var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
+        if (player is null) { return; }
         var queue = player.GetQueue();
         var currentTrack = player.Track;
 
@@ -284,6 +297,47 @@ public sealed class AudioModule(
             .Build();
 
         await ReplyAsync(embed: embed);
+    }
+    [Command("repeat")]
+    public async Task RepeatMusic([Summary("Режим повтора(None(0), One(1), All(2)")] string repeat = "0")
+    {
+        var player = await lavaNode.TryGetPlayerAsync(Context.Guild.Id);
+        if (player == null)
+        {
+            await ReplyAsync("(^_^) Бот не в голосовом канале!");
+            return;
+        }
+
+        var newMode = repeat switch
+        {
+            "0" => RepeatMode.None,
+            "1" => RepeatMode.One,
+            "2" => RepeatMode.All,
+            _ => RepeatMode.None
+        };
+        if (newMode == RepeatMode.All)
+        {
+            if (player.GetQueue().Count == 0)
+            {
+                await ReplyAsync("(-_-) Сначала запустите музыку!");
+                return;
+            }
+            var queue = new List<LavaTrack>() { player.Track };
+            queue.AddRange(player.GetQueue().ToList());
+            SavedQueues[Context.Guild.Id] = queue;
+            await ReplyAsync($"🔁 Режим повтора: **Вся очередь** (сохранено {queue.Count} треков)");
+        }
+        else if (newMode == RepeatMode.One)
+        {
+            await ReplyAsync("🔂 Режим повтора: **Один трек**");
+        }
+        else
+        { // Удаляем сохранённую очередь при выключении повтора
+            SavedQueues.Remove(Context.Guild.Id);
+            await ReplyAsync("➡️ Режим повтора: **Выключен**");
+        }
+        GuildRepeatMode[Context.Guild.Id] = newMode;
+
     }
 
 }

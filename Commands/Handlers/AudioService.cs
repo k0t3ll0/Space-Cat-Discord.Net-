@@ -1,12 +1,13 @@
-﻿using System.Collections.Concurrent;
-using System.Text.Json;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Text.Json;
 using Victoria;
 using Victoria.WebSocket.EventArgs;
-using Reason = Victoria.Enums.TrackEndReason; 
- 
+using static Space_Cat_v3.Commands.Modules.AudioModule;
+using Reason = Victoria.Enums.TrackEndReason;
+
 namespace Space_Cat_v3.Commands.Handlers
 {
     public sealed class AudioService
@@ -49,16 +50,42 @@ namespace Space_Cat_v3.Commands.Handlers
         }
 
         private async Task OnTrackEndAsync(TrackEndEventArg arg)
-        {    
+        {
+            var guildId = arg.GuildId;
             var player = await _lavaNode.TryGetPlayerAsync(arg.GuildId);
-            if (player is not null)
+            if (player is null) return;
+
+            if (!GuildRepeatMode.TryGetValue(guildId, out var mode))
+                mode = RepeatMode.None;
+
+            if (mode == RepeatMode.One && arg.Track != null)
             {
-                if (player.GetQueue().TryDequeue(out var nextTrack))
+                // Повтор одного трека: ставим его же в начало очереди и запускаем
+                player.GetQueue().Clear(); // очищаем очередь, чтобы не мешала                
+                await player.PlayAsync(_lavaNode, arg.Track!, false);
+                return;
+            }
+
+            if (player.GetQueue().Count == 1)//при 0 треков в очереди, выдает ошибку в PrefixHandler(Sequence has no more elements)
+            {
+                // Очередь пуста – проверяем Repeat.All
+                if (mode == RepeatMode.All && SavedQueues.TryGetValue(guildId, out var savedQueue) && savedQueue.Count > 0)
                 {
-                    await player.PlayAsync(_lavaNode, nextTrack);
+                    // Восстанавливаем очередь из сохранённой
+                    foreach (var track in savedQueue)
+                        player.GetQueue().Enqueue(track);
+                    player.GetQueue().TryDequeue(out _); //удаляем текущий трек из очереди 
+                    /*Запускаем первый трек
+                    if (player.GetQueue().TryDequeue(out var firstTrack))
+                    {
+                        await player.PlayAsync(_lavaNode, firstTrack, false);
+                    }*/
                 }
-                else
-                    await SendAndLogMessageAsync(arg.GuildId, $"{arg.Track.Title} завершил работу с причиной: {arg.Reason}");
+            }
+            else
+            {
+                if (player.GetQueue().TryDequeue(out var nextTrack)) 
+                    await player.PlayAsync(_lavaNode, nextTrack);
             }
         }
 
