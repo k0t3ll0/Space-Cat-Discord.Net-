@@ -25,8 +25,6 @@ namespace Space_Cat_v3
                 .AddYamlFile("Config\\config.yml")
                 //создать
                 .Build();
-
-           
             
             //Создаём билдер для сервисов
             using IHost host = Host.CreateDefaultBuilder()
@@ -46,23 +44,23 @@ namespace Space_Cat_v3
                     .AddSingleton<PrefixHandler>()
                     .AddSingleton(x => new CommandService())
                     .AddSingleton<ReactionRoleService>()
+                    .AddSingleton<AudioService>()
                     .AddLavaNode(x=>
                     {
                         x.Hostname = "127.0.0.1";
                         x.Port = 2333;
-                        x.IsSecure = false;
                         x.Authorization = "youshallnotpass";
                         x.Version = 4;
                         x.SelfDeaf = true;
                         x.EnableResume = true;
                         x.SocketConfiguration = new()
                         {
-                            BufferSize = 1024,
+                            BufferSize = 8144,
                             ReconnectAttempts = -1,
-                            ReconnectDelay = 2000
+                            ReconnectDelay = 1000
                         };
-                    })
-                    .AddSingleton<AudioService>()
+                    })  
+                    .AddSingleton<SimpleAutoRoleService>()
                 )
                 .Build();
             
@@ -84,19 +82,20 @@ namespace Space_Cat_v3
             await pCommands.InitializeAsync();
 
             var rCommands = provider.GetRequiredService<ReactionRoleService>();
-            await rCommands.InitializeAsync();           
-            
+            await rCommands.InitializeAsync();
 
-            List<ulong> ids = config["Discord:Guild"].Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
+            var aCommands = provider.GetRequiredService<SimpleAutoRoleService>();   
+
+            List<ulong> ids = config["Discord:Guild"]!.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(ulong.Parse).ToList();
 
             _client.Ready += async() => 
             {
                 /*for (int i = 0; i < ids.Count; i++)
                     await sCommands.RegisterCommandsToGuildAsync(ids[i]).ConfigureAwait(false);*/
                 await sCommands.RegisterCommandsGloballyAsync();
-
                 await provider.UseLavaNodeAsync();
                 await Task.CompletedTask;
+                await _client.SetGameAsync("Команды бота: !help (!h)", null, ActivityType.Playing);
             };
 
             await _client.LoginAsync(TokenType.Bot, config["Discord:tokens:discord"]);

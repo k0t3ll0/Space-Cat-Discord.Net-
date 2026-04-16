@@ -1,8 +1,0 @@
-Discord:
-   prefix: "!,&&"
-   Guild : guildIds
-   tokens: 
-       discord : yourBotToken
-
-
-

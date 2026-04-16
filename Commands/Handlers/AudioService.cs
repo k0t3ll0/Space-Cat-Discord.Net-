@@ -1,10 +1,12 @@
-﻿using System.Collections.Concurrent;
-using System.Text.Json;
-using Discord;
+﻿using Discord;
 using Discord.WebSocket;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
+using System.Text.Json;
 using Victoria;
 using Victoria.WebSocket.EventArgs;
+using static Space_Cat_v3.Commands.Modules.AudioModule;
+using Reason = Victoria.Enums.TrackEndReason;
 
 namespace Space_Cat_v3.Commands.Handlers
 {
@@ -33,6 +35,13 @@ namespace Space_Cat_v3.Commands.Handlers
             _lavaNode.OnPlayerUpdate += OnPlayerUpdateAsync;
             _lavaNode.OnTrackEnd += OnTrackEndAsync;
             _lavaNode.OnTrackStart += OnTrackStartAsync;
+            _lavaNode.OnTrackStuck += _lavaNode_OnTrackStuck;
+        }
+
+        private async Task _lavaNode_OnTrackStuck(TrackStuckEventArg arg)
+        {
+            var player = await _lavaNode.TryGetPlayerAsync(arg.GuildId);
+            await player.SkipAsync(_lavaNode);
         }
 
         private Task OnTrackStartAsync(TrackStartEventArg arg)
@@ -40,9 +49,44 @@ namespace Space_Cat_v3.Commands.Handlers
             return Task.CompletedTask;// SendAndLogMessageAsync(arg.GuildId, $"Сейчас играет: {arg.Track.Title}");
         }
 
-        private Task OnTrackEndAsync(TrackEndEventArg arg)
+        private async Task OnTrackEndAsync(TrackEndEventArg arg)
         {
-            return SendAndLogMessageAsync(arg.GuildId, $"{arg.Track.Title} завершил работу с причиной: {arg.Reason}");
+            var guildId = arg.GuildId;
+            var player = await _lavaNode.TryGetPlayerAsync(arg.GuildId);
+            if (player is null) return;
+
+            if (!GuildRepeatMode.TryGetValue(guildId, out var mode))
+                mode = RepeatMode.None;
+
+            if (mode == RepeatMode.One && arg.Track != null)
+            {
+                // Повтор одного трека: ставим его же в начало очереди и запускаем
+                player.GetQueue().Clear(); // очищаем очередь, чтобы не мешала                
+                await player.PlayAsync(_lavaNode, arg.Track!, false);
+                return;
+            }
+
+            if (player.GetQueue().Count == 1)//при 0 треков в очереди, выдает ошибку в PrefixHandler(Sequence has no more elements)
+            {
+                // Очередь пуста – проверяем Repeat.All
+                if (mode == RepeatMode.All && SavedQueues.TryGetValue(guildId, out var savedQueue) && savedQueue.Count > 0)
+                {
+                    // Восстанавливаем очередь из сохранённой
+                    foreach (var track in savedQueue)
+                        player.GetQueue().Enqueue(track);
+                    player.GetQueue().TryDequeue(out _); //удаляем текущий трек из очереди 
+                    /*Запускаем первый трек
+                    if (player.GetQueue().TryDequeue(out var firstTrack))
+                    {
+                        await player.PlayAsync(_lavaNode, firstTrack, false);
+                    }*/
+                }
+            }
+            else
+            {
+                if (player.GetQueue().TryDequeue(out var nextTrack)) 
+                    await player.PlayAsync(_lavaNode, nextTrack);
+            }
         }
 
         private Task OnPlayerUpdateAsync(PlayerUpdateEventArg arg)

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Space_Cat_v3.Commands.Modules
 {
-    // УБРАТЬ [Group("reactionrole")] из класса - он будет в методах
+   
     [Name("ReactionRole")]  // Добавляем имя модуля
     [Summary("Управление ролями по реакциям")]
     public class ReactionRoleModule : ModuleBase<SocketCommandContext>
