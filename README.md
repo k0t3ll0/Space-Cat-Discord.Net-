@@ -4,13 +4,15 @@
 3. Музыка
 
 Библиотеки:
-Discord.NET (весь проект)
-Victoria (музыка)
-Microsoft(DI, Hosting, etc.)
+ - Discord.NET (весь проект)
+ - Victoria (музыка)
+ - Microsoft(DI, Hosting, etc.)
+
+Также используется сборка Lavalink v4 для сервера музыки.
 
 ToDo:
-Interactive Embeds(панели с кнопками)
-Other functions 
+ - Interactive Embeds(панели с кнопками)
+ - Other functions 
 
 ```
 Префикс-команды
