@@ -19,8 +19,10 @@
     <DebugType>embedded</DebugType>
     <!-- Встраивание PDB -->
     <DebugSymbols>true</DebugSymbols>
-
+    
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    
+    <ApplicationManifest>app.manifest</ApplicationManifest>
 
   </PropertyGroup>
   
