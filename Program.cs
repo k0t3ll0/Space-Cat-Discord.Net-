@@ -102,7 +102,7 @@ namespace Space_Cat_v3
             try
             {
                 var lavalinkJarPath = Path.Combine(AppContext.BaseDirectory, "Lavalink\\Lavalink.jar");
-                var altPath = Path.Combine(AppContext.BaseDirectory, "..", "Lavalink\\Lavalink.jar");
+                var altPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Lavalink\\Lavalink.jar");
 
                 string? jarPath = null;
                 if (File.Exists(lavalinkJarPath))

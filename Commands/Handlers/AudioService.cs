@@ -74,12 +74,12 @@ namespace Space_Cat_v3.Commands.Handlers
                     // Восстанавливаем очередь из сохранённой
                     foreach (var track in savedQueue)
                         player.GetQueue().Enqueue(track);
-                    player.GetQueue().TryDequeue(out _); //удаляем текущий трек из очереди 
-                    /*Запускаем первый трек
+                    
+                    //Запускаем первый трек
                     if (player.GetQueue().TryDequeue(out var firstTrack))
                     {
                         await player.PlayAsync(_lavaNode, firstTrack, false);
-                    }*/
+                    }
                 }
             }
             else
